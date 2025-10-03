@@ -56,13 +56,13 @@ export default function VehicleDetailPage() {
       .catch((e) => setError(String(e)))
   }, [vehicleId])
 
-  if (error) return <div style={{ padding: 24, color: 'red' }}>{error}</div>
-  if (!detail) return <div style={{ padding: 24 }}>Loading...</div>
+  if (error) return <div style={{ color: '#ef4444' }}>{error}</div>
+  if (!detail) return <div>Loading...</div>
 
   return (
-    <div style={{ padding: 24, fontFamily: 'Inter, system-ui, sans-serif' }}>
-      <p><Link to="/">← 대시보드</Link></p>
-      <h2>차량 상세</h2>
+    <div>
+      <p><Link className="link" to="/">← 대시보드</Link></p>
+      <div className="page-title"><h1>차량 상세</h1><span className="badge">기본정보</span></div>
       <ul>
         <li>차량 ID: {detail.vehicle_id}</li>
         <li>모델: {detail.model}</li>

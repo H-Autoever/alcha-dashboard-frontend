@@ -22,24 +22,34 @@ export default function Dashboard() {
   }, [])
 
   return (
-    <div style={{ padding: 24, fontFamily: 'Inter, system-ui, sans-serif' }}>
-      <h1>전체 차량 현황 대시보드</h1>
-      {summary && <p>총 차량 수: {summary.total_vehicles}</p>}
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-      <table style={{ borderCollapse: 'collapse', width: '100%' }}>
+    <div>
+      <div className="page-title">
+        <h1>전체 차량 현황 대시보드</h1>
+        <span className="badge">기본정보</span>
+      </div>
+      {summary && (
+        <div className="cards" style={{ marginBottom: 12 }}>
+          <div className="card">
+            <div className="stat-label">총 차량 수</div>
+            <div className="stat-value">{summary.total_vehicles}</div>
+          </div>
+        </div>
+      )}
+      {error && <p style={{ color: '#ef4444' }}>{error}</p>}
+      <table className="table">
         <thead>
           <tr>
-            <th style={{ textAlign: 'left', borderBottom: '1px solid #ddd', padding: 8 }}>차량 ID</th>
-            <th style={{ textAlign: 'left', borderBottom: '1px solid #ddd', padding: 8 }}>모델</th>
+            <th>차량 ID</th>
+            <th>모델</th>
           </tr>
         </thead>
         <tbody>
           {vehicles.map((v) => (
             <tr key={v.vehicle_id}>
-              <td style={{ borderBottom: '1px solid #eee', padding: 8 }}>
-                <Link to={`/vehicle/${encodeURIComponent(v.vehicle_id)}`}>{v.vehicle_id}</Link>
+              <td>
+                <Link className="link" to={`/vehicle/${encodeURIComponent(v.vehicle_id)}`}>{v.vehicle_id}</Link>
               </td>
-              <td style={{ borderBottom: '1px solid #eee', padding: 8 }}>{v.model}</td>
+              <td>{v.model}</td>
             </tr>
           ))}
         </tbody>
