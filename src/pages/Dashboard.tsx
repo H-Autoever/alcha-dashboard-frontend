@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { Search, Table, Alert, Loader } from '../components/UI'
 import { api } from '../api/client'
 
 type Vehicle = { vehicle_id: string; model: string }
@@ -8,8 +9,11 @@ export default function Dashboard() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
   const [summary, setSummary] = useState<{ total_vehicles: number } | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [q, setQ] = useState('')
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    setLoading(true)
     Promise.all([
       api<Vehicle[]>(`/api/vehicles/`),
       api<{ total_vehicles: number }>(`/api/vehicles/summary`)
@@ -19,6 +23,7 @@ export default function Dashboard() {
         setSummary(s)
       })
       .catch((e) => setError(String(e)))
+      .finally(() => setLoading(false))
   }, [])
 
   return (
@@ -35,25 +40,26 @@ export default function Dashboard() {
           </div>
         </div>
       )}
-      {error && <p style={{ color: '#ef4444' }}>{error}</p>}
-      <table className="table">
-        <thead>
-          <tr>
-            <th>차량 ID</th>
-            <th>모델</th>
-          </tr>
-        </thead>
-        <tbody>
-          {vehicles.map((v) => (
-            <tr key={v.vehicle_id}>
-              <td>
-                <Link className="link" to={`/vehicle/${encodeURIComponent(v.vehicle_id)}`}>{v.vehicle_id}</Link>
-              </td>
-              <td>{v.model}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+        <Search value={q} onChange={setQ} placeholder="차량 ID 또는 모델 검색" />
+      </div>
+      {error && <Alert>{error}</Alert>}
+      {loading ? (
+        <Loader />
+      ) : (
+        <Table headers={["차량 ID", "모델"]}>
+          {vehicles
+            .filter((v) => (q ? (v.vehicle_id + ' ' + v.model).toLowerCase().includes(q.toLowerCase()) : true))
+            .map((v) => (
+              <tr key={v.vehicle_id}>
+                <td>
+                  <Link className="link" to={`/vehicle/${encodeURIComponent(v.vehicle_id)}`}>{v.vehicle_id}</Link>
+                </td>
+                <td>{v.model}</td>
+              </tr>
+            ))}
+        </Table>
+      )}
     </div>
   )
 }

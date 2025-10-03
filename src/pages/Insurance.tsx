@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
+import { Search, Table, Alert, Loader } from '../components/UI'
+import { Modal } from '../components/Modal'
 
 type Row = {
   vehicle_id: string
@@ -13,9 +15,13 @@ type Row = {
 export default function InsurancePage() {
   const [rows, setRows] = useState<Row[]>([])
   const [error, setError] = useState<string | null>(null)
+  const [q, setQ] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [selected, setSelected] = useState<Row | null>(null)
 
   useEffect(() => {
-    api<Row[]>(`/api/insurance/`).then(setRows).catch((e) => setError(String(e)))
+    setLoading(true)
+    api<Row[]>(`/api/insurance/`).then(setRows).catch((e) => setError(String(e))).finally(() => setLoading(false))
   }, [])
 
   return (
@@ -24,31 +30,39 @@ export default function InsurancePage() {
         <h1>보험 위험도 평가</h1>
         <span className="badge">보험</span>
       </div>
-      {error && <p style={{ color: '#ef4444' }}>{error}</p>}
-      <table className="table">
-        <thead>
-          <tr>
-            <th>차량 ID</th>
-            <th>과속 위험도</th>
-            <th>급가속/급정지</th>
-            <th>급회전</th>
-            <th>야간 주행</th>
-            <th>종합 등급</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r) => (
-            <tr key={r.vehicle_id}>
-              <td>{r.vehicle_id}</td>
-              <td>{r.over_speed_risk ?? '-'}</td>
-              <td>{r.sudden_accel_risk ?? '-'}</td>
-              <td>{r.sudden_turn_risk ?? '-'}</td>
-              <td>{r.night_drive_risk ?? '-'}</td>
-              <td>{r.overall_grade ?? '-'}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+        <Search value={q} onChange={setQ} placeholder="차량 ID 검색" />
+      </div>
+      {error && <Alert>{error}</Alert>}
+      {loading ? (
+        <Loader />
+      ) : (
+        <Table headers={["차량 ID", "과속 위험도", "급가속/급정지", "급회전", "야간 주행", "종합 등급"]}>
+          {rows
+            .filter((r) => (q ? r.vehicle_id.toLowerCase().includes(q.toLowerCase()) : true))
+            .map((r) => (
+              <tr key={r.vehicle_id}>
+                <td><a className="link" href="#" onClick={(e) => { e.preventDefault(); setSelected(r) }}>{r.vehicle_id}</a></td>
+                <td>{r.over_speed_risk ?? '-'}</td>
+                <td>{r.sudden_accel_risk ?? '-'}</td>
+                <td>{r.sudden_turn_risk ?? '-'}</td>
+                <td>{r.night_drive_risk ?? '-'}</td>
+                <td>{r.overall_grade ?? '-'}</td>
+              </tr>
+            ))}
+        </Table>
+      )}
+      <Modal open={!!selected} onClose={() => setSelected(null)} title={selected ? `차량 ${selected.vehicle_id} 위험도 상세` : ''}>
+        {selected && (
+          <div className="cards">
+            <div className="card"><div className="stat-label">과속</div><div className="stat-value">{selected.over_speed_risk ?? '-'}</div></div>
+            <div className="card"><div className="stat-label">급가속/정지</div><div className="stat-value">{selected.sudden_accel_risk ?? '-'}</div></div>
+            <div className="card"><div className="stat-label">급회전</div><div className="stat-value">{selected.sudden_turn_risk ?? '-'}</div></div>
+            <div className="card"><div className="stat-label">야간 주행</div><div className="stat-value">{selected.night_drive_risk ?? '-'}</div></div>
+            <div className="card"><div className="stat-label">종합 등급</div><div className="stat-value">{selected.overall_grade ?? '-'}</div></div>
+          </div>
+        )}
+      </Modal>
     </div>
   )
 }
