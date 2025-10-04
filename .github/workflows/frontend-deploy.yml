@@ -58,4 +58,5 @@ jobs:
 
       # 빌드된 이미지 URI 출력
       - name: Output image URI
-        run: echo "Image URI: ${{ steps.build-image.outputs.image }}"
+        run: |
+          echo "Image URI: ${{ steps.build-image.outputs.image }}"
