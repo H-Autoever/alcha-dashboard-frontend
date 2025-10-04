@@ -1,0 +1,61 @@
+name: Build and Push to ECR
+
+# 워크플로우 트리거 설정 (main 브랜치에만 푸시될 때 실행)
+on:
+  push:
+    branches: [ main ]
+
+# 환경 변수 설정
+env:
+  AWS_REGION: ap-northeast-2
+
+jobs:
+  # build: Docker 이미지를 빌드하고 ECR에 푸시하는 단계입니다.
+  build:
+    runs-on: ubuntu-latest
+    
+    # GitHub Actions 권한 설정
+    permissions:
+      contents: read
+
+    steps:
+    # 소스 코드 체크아웃
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    # AWS 자격 증명 설정
+    - name: Configure AWS credentials
+      run: |
+        # AWS 자격 증명 설정
+        aws configure set aws_access_key_id "${{ secrets.AWS_ACCESS_KEY_ID }}"
+        aws configure set aws_secret_access_key "${{ secrets.AWS_SECRET_ACCESS_KEY }}"
+        aws configure set default.region "${{ env.AWS_REGION }}"
+
+    # Amazon ECR 로그인
+    - name: Login to Amazon ECR
+      id: login-ecr
+      run: |
+        aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.ECR_REGISTRY_URL }}
+
+    # Docker 이미지 빌드, 태깅 및 ECR 푸시
+    - name: Build, tag, and push image to Amazon ECR
+      id: build-image
+      env:
+        ECR_REGISTRY_URL: ${{ secrets.ECR_REGISTRY_URL }}
+        IMAGE_TAG: ${{ github.sha }}
+      run: |
+        # Docker 컨테이너 빌드 (커밋 SHA 태그로 빌드)
+        docker build -t $ECR_REGISTRY_URL:$IMAGE_TAG .
+        
+        # latest 태그 추가
+        docker tag $ECR_REGISTRY_URL:$IMAGE_TAG $ECR_REGISTRY_URL:latest
+        
+        # ECR에 푸시
+        docker push $ECR_REGISTRY_URL:$IMAGE_TAG
+        docker push $ECR_REGISTRY_URL:latest
+        
+        echo "image=$ECR_REGISTRY_URL:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+    # 빌드된 이미지 URI 출력
+    - name: Output image URI
+      run: echo "Image URI: ${{ steps.build-image.outputs.image }}"
