@@ -1,10 +1,10 @@
 # 빌드 환경 설정 및 alch-dashboard-frontend 빌드
-FROM node:20-alpine AS builder
+FROM node:20-alpine AS build-stage
 
 WORKDIR /app
 
-COPY package.json package-lock.json* ./
-RUN npm ci --only=production
+COPY package.json package-lock.json ./
+RUN npm install
 
 COPY . .
 RUN npm run build
@@ -13,7 +13,7 @@ RUN npm run build
 FROM nginx:alpine
 
 # 빌드된 정적 파일들을 nginx 웹 서버로 복사
-COPY --from=builder /app/dist /usr/share/nginx/html
+COPY --from=build-stage /app/dist /usr/share/nginx/html
 
 # nginx 설정 파일 복사
 COPY nginx.conf /etc/nginx/nginx.conf
