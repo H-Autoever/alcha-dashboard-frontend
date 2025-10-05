@@ -60,5 +60,4 @@ jobs:
       - name: Output image URI
         run: |
           echo "Image URI: ${{ steps.build-image.outputs.image }}"
-      
     
