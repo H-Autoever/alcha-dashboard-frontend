@@ -11,8 +11,8 @@ metadata:
     # 애플리케이션 라벨
     app: alcha-dashboard-frontend  
 spec:
-  # 실행할 파드 개수
-  replicas: 3  
+  # 실행할 파드 개수 (테스트용으로 1개)
+  replicas: 1  
   selector:
     matchLabels:
       # 파드 선택을 위한 라벨
