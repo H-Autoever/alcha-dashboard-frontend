@@ -32,10 +32,7 @@ spec:
     path: k8s
 
     # Kustomize 빌더 사용 명시
-    kustomize:
-      images:
-        - name: 577012215958.dkr.ecr.ap-northeast-2.amazonaws.com/alcha/dashboard-frontend
-          newTag: latest # 초기 배포 태그 (Image Updater가 이 값을 업데이트)
+    kustomize: {}
 
   destination:
     server: https://kubernetes.default.svc
