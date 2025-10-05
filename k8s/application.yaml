@@ -13,8 +13,8 @@ metadata:
     # 2. 가장 최근에 푸시된 태그를 사용하도록 설정
     argocd-image-updater.argoproj.io/frontend.update-strategy: newest-build
 
-    # 3. 유효한 태그 패턴 정의 (latest 태그 사용)
-    argocd-image-updater.argoproj.io/frontend.allow-tags: regexp:^latest$
+    # 3. 유효한 태그 패턴 정의 (커밋 SHA 태그 사용)
+    argocd-image-updater.argoproj.io/frontend.allow-tags: regexp:^[0-9a-f]{40}$
 
     # 4. Kustomize 이미지 태그 업데이트 위치 지정
     # Kustomization 파일 내의 'image' 섹션을 업데이트하도록 지시
