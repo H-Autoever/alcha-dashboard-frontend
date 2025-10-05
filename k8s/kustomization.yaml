@@ -5,6 +5,7 @@ resources:
   - deployment.yaml
   - service.yaml
   - configmap.yaml
+  - ingress.yaml
 
 images:
   - name: 577012215958.dkr.ecr.ap-northeast-2.amazonaws.com/alcha/dashboard-frontend

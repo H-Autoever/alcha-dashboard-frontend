@@ -8,8 +8,8 @@ metadata:
   # 네임스페이스 명시
   namespace: default  
 spec:
-  # 외부에서 접근 가능한 로드밸런서 타입
-  type: LoadBalancer  
+  # 클러스터 내부에서만 접근 가능한 서비스 타입 (Ingress에서 사용)
+  type: ClusterIP  
   selector:
     # 연결할 파드 선택 (Deployment의 라벨과 일치)
     app: alcha-dashboard-frontend  
