@@ -1,0 +1,13 @@
+# dashboard-frontend 애플리케이션의 환경변수 설정을 위한 ConfigMap 정의
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  # ConfigMap 이름
+  name: alcha-dashboard-frontend-config  
+  # 네임스페이스 (기본 네임스페이스 사용)
+  namespace: default  
+data:
+  # 프론트엔드에서 백엔드 API 서버에 접근하기 위한 URL
+  # 백엔드 서비스 이름과 포트를 사용하여 클러스터 내부 통신
+  VITE_API_BASE_URL: "http://alcha-backend-service:8080"
