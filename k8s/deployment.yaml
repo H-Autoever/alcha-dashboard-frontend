@@ -14,8 +14,9 @@ spec:
   # 실행할 파드 개수
   replicas: 3  
   selector:
-    # 파드 선택을 위한 라벨
-    app: alcha-dashboard-frontend  
+    matchLabels:
+      # 파드 선택을 위한 라벨
+      app: alcha-dashboard-frontend  
   template:
     metadata:
       labels:
