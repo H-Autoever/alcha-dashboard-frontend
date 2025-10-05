@@ -1,0 +1,1 @@
+{"root":["./src/main.tsx","./src/vite-env.d.ts","./src/api/client.ts","./src/components/modal.tsx","./src/components/ui.tsx","./src/pages/dashboard.tsx","./src/pages/insurance.tsx","./src/pages/usedcar.tsx","./src/pages/vehicledetail.tsx"],"version":"5.6.2"}
