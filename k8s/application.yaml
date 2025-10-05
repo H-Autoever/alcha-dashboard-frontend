@@ -10,7 +10,7 @@ metadata:
     # ECR 레지스트리 주소와 레포지토리 경로를 지정
     argocd-image-updater.argoproj.io/image-list: frontend=577012215958.dkr.ecr.ap-northeast-2.amazonaws.com/alcha/dashboard-frontend
 
-    # 2. 업데이트 전략: 가장 최근에 푸시된 태그를 사용하도록 설정
+    # 2. 가장 최근에 푸시된 태그를 사용하도록 설정
     argocd-image-updater.argoproj.io/frontend.update-strategy: newest-build
 
     # 3. 유효한 태그 패턴 정의 (latest 태그 사용)
