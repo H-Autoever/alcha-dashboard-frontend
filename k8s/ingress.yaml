@@ -30,6 +30,14 @@ spec:
             name: alcha-dashboard-frontend-service
             port:
               number: 80
+      # 백엔드 헬스체크
+      - path: /health
+        pathType: Exact
+        backend:
+          service:
+            name: alcha-dashboard-backend-svc
+            port:
+              number: 8000
       # 백엔드 API (API 경로)
       - path: /api
         pathType: Prefix
