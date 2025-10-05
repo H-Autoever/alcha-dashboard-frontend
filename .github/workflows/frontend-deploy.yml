@@ -61,21 +61,4 @@ jobs:
         run: |
           echo "Image URI: ${{ steps.build-image.outputs.image }}"
       
-      # ArgoCD 동기화 트리거
-      - name: Trigger ArgoCD Sync
-        run: |
-          # ArgoCD 서버 URL
-          ARGOCD_SERVER="https://ab56ccc972c5849869fe4bf757d305c0-1130359810.ap-northeast-2.elb.amazonaws.com"
-          
-          # ArgoCD CLI 설치
-          curl -sSL -o argocd-linux-amd64 https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
-          sudo install -m 555 argocd-linux-amd64 /usr/local/bin/argocd
-          rm argocd-linux-amd64
-          
-          # ArgoCD 로그인
-          argocd login $ARGOCD_SERVER --username admin --password ${{ secrets.ARGOCD_PASSWORD }}
-          
-          # 애플리케이션 동기화
-          argocd app sync alcha-dashboard-frontend
-          
-          echo "ArgoCD sync triggered successfully!"
+    
