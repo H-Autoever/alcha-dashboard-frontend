@@ -5,6 +5,8 @@ kind: Service
 metadata:
   # 서비스 이름
   name: alcha-dashboard-frontend-service  
+  # 네임스페이스 명시
+  namespace: default  
 spec:
   # 클러스터 내부에서만 접근 가능한 서비스 타입
   type: ClusterIP  

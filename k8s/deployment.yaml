@@ -5,6 +5,8 @@ kind: Deployment
 metadata:
   # Deployment 이름
   name: alcha-dashboard-frontend  
+  # 네임스페이스 명시
+  namespace: default
   labels:
     # 애플리케이션 라벨
     app: alcha-dashboard-frontend  
