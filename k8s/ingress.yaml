@@ -6,13 +6,10 @@ metadata:
   name: alcha-dashboard-ingress
   namespace: default
   annotations:
-    kubernetes.io/ingress.class: "alb"
-    alb.ingress.kubernetes.io/scheme: internet-facing
-    alb.ingress.kubernetes.io/target-type: ip
-    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+    kubernetes.io/ingress.class: "nginx"
 spec:
   rules:
-  - host: alcha-dashboard.example.com  # 실제 도메인으로 변경 필요
+  - host: "*"  # 모든 도메인 허용 (테스트용) 나중에 실제 도메인으로 변경경
     http:
       paths:
       # 프론트엔드 (루트 경로)
