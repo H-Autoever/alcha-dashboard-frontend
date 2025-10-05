@@ -12,7 +12,7 @@ export default function Dashboard() {
   const [q, setQ] = useState('')
   const [loading, setLoading] = useState(true)
   
-  // Auto Deploy Test !!!!
+  // API 연결 테스트 - 환경변수 확인용
 
   useEffect(() => {
     setLoading(true)
