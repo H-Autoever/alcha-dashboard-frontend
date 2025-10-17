@@ -49,15 +49,22 @@ export default function Dashboard() {
       {loading ? (
         <Loader />
       ) : (
-        <Table headers={["차량 ID", "모델"]}>
+        <Table headers={["차량 ID", "모델", "상태"]}>
           {vehicles
             .filter((v) => (q ? (v.vehicle_id + ' ' + v.model).toLowerCase().includes(q.toLowerCase()) : true))
             .map((v) => (
-              <tr key={v.vehicle_id}>
+              <tr key={v.vehicle_id} className="vehicle-row">
                 <td>
-                  <Link className="link" to={`/vehicle/${encodeURIComponent(v.vehicle_id)}`}>{v.vehicle_id}</Link>
+                  <Link className="vehicle-link" to={`/vehicle/${encodeURIComponent(v.vehicle_id)}`}>
+                    🚗 {v.vehicle_id}
+                  </Link>
                 </td>
-                <td>{v.model}</td>
+                <td>
+                  <span className="vehicle-model">{v.model}</span>
+                </td>
+                <td>
+                  <span className="vehicle-status-badge">활성</span>
+                </td>
               </tr>
             ))}
         </Table>
