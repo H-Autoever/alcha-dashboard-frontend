@@ -128,8 +128,26 @@ function EventTimeline({
   engineOffEvents: EngineOffEvent[]
   collisionEvents: CollisionEvent[]
 }) {
-  // 날짜 범위 계산
-  const dates = dailyData.map(d => new Date(d.analysis_date!)).sort((a, b) => a.getTime() - b.getTime())
+  // 날짜 범위 계산 (안전한 처리)
+  const dates = dailyData
+    .filter(d => d.analysis_date) // null/undefined 필터링
+    .map(d => new Date(d.analysis_date!))
+    .sort((a, b) => a.getTime() - b.getTime())
+  
+  if (dates.length === 0) {
+    return (
+      <div style={{ 
+        border: '1px solid #374151', 
+        borderRadius: 12, 
+        padding: 24, 
+        backgroundColor: '#1f2937',
+        textAlign: 'center'
+      }}>
+        <p style={{ color: '#9ca3af' }}>이벤트 데이터가 없습니다.</p>
+      </div>
+    )
+  }
+  
   const startDate = dates[0]
   const endDate = dates[dates.length - 1]
   const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1
@@ -145,19 +163,23 @@ function EventTimeline({
     eventsByDate[dateStr] = { collision: 0, engineOff: 0 }
   }
   
-  // 충돌 이벤트 카운트
+  // 충돌 이벤트 카운트 (안전한 처리)
   collisionEvents.forEach(event => {
-    const date = new Date(event.timestamp).toISOString().split('T')[0]
-    if (eventsByDate[date]) {
-      eventsByDate[date].collision++
+    if (event && event.timestamp) {
+      const date = new Date(event.timestamp).toISOString().split('T')[0]
+      if (eventsByDate[date]) {
+        eventsByDate[date].collision++
+      }
     }
   })
   
-  // 엔진 오프 이벤트 카운트
+  // 엔진 오프 이벤트 카운트 (안전한 처리)
   engineOffEvents.forEach(event => {
-    const date = new Date(event.timestamp).toISOString().split('T')[0]
-    if (eventsByDate[date]) {
-      eventsByDate[date].engineOff++
+    if (event && event.timestamp) {
+      const date = new Date(event.timestamp).toISOString().split('T')[0]
+      if (eventsByDate[date]) {
+        eventsByDate[date].engineOff++
+      }
     }
   })
 
@@ -324,12 +346,12 @@ function EventTimeline({
             const dayEvents = eventsByDate[dateStr] || { collision: 0, engineOff: 0 }
             const x = xScale(i) - barWidth / 2
             
-            // 해당 날짜의 실제 이벤트들 찾기
+            // 해당 날짜의 실제 이벤트들 찾기 (안전한 처리)
             const dayCollisionEvents = collisionEvents.filter(e => 
-              new Date(e.timestamp).toISOString().split('T')[0] === dateStr
+              e && e.timestamp && new Date(e.timestamp).toISOString().split('T')[0] === dateStr
             )
             const dayEngineOffEvents = engineOffEvents.filter(e => 
-              new Date(e.timestamp).toISOString().split('T')[0] === dateStr
+              e && e.timestamp && new Date(e.timestamp).toISOString().split('T')[0] === dateStr
             )
             
             return (
@@ -441,7 +463,7 @@ function EventTimeline({
           📋 이벤트 상세 정보
         </h4>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {[...collisionEvents.map(e => ({ ...e, type: 'collision' as const })), ...engineOffEvents.map(e => ({ ...e, type: 'engine_off' as const }))]
+          {[...collisionEvents.filter(e => e && e.timestamp).map(e => ({ ...e, type: 'collision' as const })), ...engineOffEvents.filter(e => e && e.timestamp).map(e => ({ ...e, type: 'engine_off' as const }))]
             .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
             .map((event, index) => (
             <div key={`event-${index}`} style={{ 
