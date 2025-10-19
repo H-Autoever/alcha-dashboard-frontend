@@ -161,9 +161,9 @@ function EventTimeline({
     }
   })
 
-  // 차트 설정
-  const chartHeight = 280
-  const chartWidth = Math.max(800, totalDays * 100)
+  // 차트 설정 (한달 데이터에 맞게 조정)
+  const chartHeight = 320
+  const chartWidth = Math.max(1200, totalDays * 25) // 30일 × 25px = 750px 최소
   const margin = { top: 30, right: 40, bottom: 60, left: 80 }
   const maxEvents = Math.max(
     ...Object.values(eventsByDate).map(d => d.collision + d.engineOff),
@@ -324,6 +324,14 @@ function EventTimeline({
             const dayEvents = eventsByDate[dateStr] || { collision: 0, engineOff: 0 }
             const x = xScale(i) - barWidth / 2
             
+            // 해당 날짜의 실제 이벤트들 찾기
+            const dayCollisionEvents = collisionEvents.filter(e => 
+              new Date(e.timestamp).toISOString().split('T')[0] === dateStr
+            )
+            const dayEngineOffEvents = engineOffEvents.filter(e => 
+              new Date(e.timestamp).toISOString().split('T')[0] === dateStr
+            )
+            
             return (
               <g key={i}>
                 {/* 충돌 이벤트 막대 */}
@@ -337,11 +345,25 @@ function EventTimeline({
                     rx="2"
                     style={{ 
                       cursor: 'pointer',
-                      filter: 'drop-shadow(0 2px 4px rgba(239, 68, 68, 0.3))'
+                      filter: 'drop-shadow(0 2px 4px rgba(239, 68, 68, 0.3))',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.filter = 'drop-shadow(0 4px 8px rgba(239, 68, 68, 0.5))'
+                      e.currentTarget.style.fill = '#dc2626'
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.filter = 'drop-shadow(0 2px 4px rgba(239, 68, 68, 0.3))'
+                      e.currentTarget.style.fill = '#ef4444'
                     }}
                   >
                     <title>
-                      충돌 이벤트: {dayEvents.collision}개
+                      {dayCollisionEvents.length > 0 
+                        ? dayCollisionEvents.map(e => 
+                            `충돌 이벤트 (${new Date(e.timestamp).toLocaleTimeString('ko-KR')})\n손상도: ${e.damage}/5`
+                          ).join('\n\n')
+                        : `충돌 이벤트: ${dayEvents.collision}개`
+                      }
                     </title>
                   </rect>
                 )}
@@ -357,11 +379,25 @@ function EventTimeline({
                     rx="2"
                     style={{ 
                       cursor: 'pointer',
-                      filter: 'drop-shadow(0 2px 4px rgba(245, 158, 11, 0.3))'
+                      filter: 'drop-shadow(0 2px 4px rgba(245, 158, 11, 0.3))',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.filter = 'drop-shadow(0 4px 8px rgba(245, 158, 11, 0.5))'
+                      e.currentTarget.style.fill = '#d97706'
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.filter = 'drop-shadow(0 2px 4px rgba(245, 158, 11, 0.3))'
+                      e.currentTarget.style.fill = '#f59e0b'
                     }}
                   >
                     <title>
-                      엔진 오프 이벤트: {dayEvents.engineOff}개
+                      {dayEngineOffEvents.length > 0 
+                        ? dayEngineOffEvents.map(e => 
+                            `엔진 오프 이벤트 (${new Date(e.timestamp).toLocaleTimeString('ko-KR')})\n기어: ${e.gear_status}, 자이로: ${e.gyro}°, 방향: ${e.side}`
+                          ).join('\n\n')
+                        : `엔진 오프 이벤트: ${dayEvents.engineOff}개`
+                      }
                     </title>
                   </rect>
                 )}
