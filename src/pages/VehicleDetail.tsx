@@ -44,6 +44,11 @@ export default function VehicleDetailPage() {
   const [eventData, setEventData] = useState<EventData | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  
+  // 날짜 필터 상태
+  const [startDate, setStartDate] = useState<string>('')
+  const [endDate, setEndDate] = useState<string>('')
+  const [filteredDailyData, setFilteredDailyData] = useState<DailyData[]>([])
 
   useEffect(() => {
     if (!vehicleId) return
@@ -57,10 +62,40 @@ export default function VehicleDetailPage() {
       .then(([vehicleDetail, events]) => {
         setDetail(vehicleDetail)
         setEventData(events)
+        
+        // 초기 필터링된 데이터 설정 (전체 데이터)
+        setFilteredDailyData(vehicleDetail.daily_data)
+        
+        // 날짜 범위 초기화 (전체 데이터 범위)
+        if (vehicleDetail.daily_data.length > 0) {
+          const dates = vehicleDetail.daily_data
+            .filter(d => d.analysis_date)
+            .map(d => d.analysis_date!)
+            .sort()
+          setStartDate(dates[0])
+          setEndDate(dates[dates.length - 1])
+        }
       })
       .catch((e) => setError(String(e)))
       .finally(() => setLoading(false))
   }, [vehicleId])
+
+  // 날짜 필터링 로직
+  useEffect(() => {
+    if (!detail?.daily_data) return
+    
+    let filtered = detail.daily_data
+    
+    if (startDate) {
+      filtered = filtered.filter(d => d.analysis_date && d.analysis_date >= startDate)
+    }
+    
+    if (endDate) {
+      filtered = filtered.filter(d => d.analysis_date && d.analysis_date <= endDate)
+    }
+    
+    setFilteredDailyData(filtered)
+  }, [detail, startDate, endDate])
 
   if (error) return <Alert>{error}</Alert>
   if (loading) return <Loader />
@@ -90,25 +125,121 @@ export default function VehicleDetailPage() {
         </div>
       </div>
 
-      {/* 날짜별 데이터 테이블 */}
-      <h3>날짜별 상세 데이터</h3>
-      <Table headers={["분석 날짜", "총 주행거리 (km)", "평균 속도 (km/h)", "연비 (km/L)"]}>
-        {detail.daily_data.map((data, index) => (
-          <tr key={index}>
-            <td>{data.analysis_date ? new Date(data.analysis_date).toLocaleDateString('ko-KR') : '-'}</td>
-            <td>{data.total_distance ? data.total_distance.toLocaleString() : '-'}</td>
-            <td>{data.average_speed ? data.average_speed.toFixed(1) : '-'}</td>
-            <td>{data.fuel_efficiency ? data.fuel_efficiency.toFixed(1) : '-'}</td>
-          </tr>
-        ))}
-      </Table>
+          {/* 날짜별 데이터 테이블 */}
+          <div style={{ marginBottom: 24 }}>
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center', 
+              marginBottom: 16 
+            }}>
+              <h3 style={{ margin: 0 }}>날짜별 상세 데이터</h3>
+              <div style={{ 
+                fontSize: 14, 
+                color: '#6b7280',
+                backgroundColor: '#374151',
+                padding: '4px 12px',
+                borderRadius: 6
+              }}>
+                {filteredDailyData.length}개 레코드
+              </div>
+            </div>
+            
+            {/* 날짜 필터 UI */}
+            <div style={{ 
+              display: 'flex', 
+              gap: 16, 
+              alignItems: 'center', 
+              marginBottom: 20,
+              padding: 16,
+              backgroundColor: '#1f2937',
+              border: '1px solid #374151',
+              borderRadius: 8
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ color: '#f9fafb', fontSize: 14, fontWeight: 500 }}>📅 날짜 필터:</span>
+              </div>
+              
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <label style={{ color: '#d1d5db', fontSize: 14 }}>시작일:</label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  style={{
+                    padding: '6px 12px',
+                    backgroundColor: '#374151',
+                    border: '1px solid #4b5563',
+                    borderRadius: 6,
+                    color: '#f9fafb',
+                    fontSize: 14
+                  }}
+                />
+              </div>
+              
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <label style={{ color: '#d1d5db', fontSize: 14 }}>종료일:</label>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  style={{
+                    padding: '6px 12px',
+                    backgroundColor: '#374151',
+                    border: '1px solid #4b5563',
+                    borderRadius: 6,
+                    color: '#f9fafb',
+                    fontSize: 14
+                  }}
+                />
+              </div>
+              
+              <button
+                onClick={() => {
+                  if (detail?.daily_data) {
+                    const dates = detail.daily_data
+                      .filter(d => d.analysis_date)
+                      .map(d => d.analysis_date!)
+                      .sort()
+                    setStartDate(dates[0])
+                    setEndDate(dates[dates.length - 1])
+                  }
+                }}
+                style={{
+                  padding: '6px 12px',
+                  backgroundColor: '#3b82f6',
+                  border: 'none',
+                  borderRadius: 6,
+                  color: '#ffffff',
+                  fontSize: 14,
+                  cursor: 'pointer',
+                  transition: 'background-color 0.2s'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#2563eb'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#3b82f6'}
+              >
+                전체 기간
+              </button>
+            </div>
+          </div>
+          
+          <Table headers={["분석 날짜", "총 주행거리 (km)", "평균 속도 (km/h)", "연비 (km/L)"]}>
+            {filteredDailyData.map((data, index) => (
+              <tr key={index}>
+                <td>{data.analysis_date ? new Date(data.analysis_date).toLocaleDateString('ko-KR') : '-'}</td>
+                <td>{data.total_distance ? data.total_distance.toLocaleString() : '-'}</td>
+                <td>{data.average_speed ? data.average_speed.toFixed(1) : '-'}</td>
+                <td>{data.fuel_efficiency ? data.fuel_efficiency.toFixed(1) : '-'}</td>
+              </tr>
+            ))}
+          </Table>
 
       {/* 이벤트 그래프 섹션 */}
       <h3>이벤트 타임라인</h3>
       {eventData && (
         <div style={{ marginTop: 16 }}>
           <EventTimeline 
-            dailyData={detail.daily_data}
+            dailyData={filteredDailyData}
             engineOffEvents={eventData.engine_off_events}
             collisionEvents={eventData.collision_events}
           />
