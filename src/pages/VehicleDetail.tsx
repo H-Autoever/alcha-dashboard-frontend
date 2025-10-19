@@ -118,7 +118,7 @@ export default function VehicleDetailPage() {
   )
 }
 
-// 이벤트 타임라인 컴포넌트 (X-Y축 차트)
+// 이벤트 타임라인 컴포넌트 (개선된 막대 그래프)
 function EventTimeline({ 
   dailyData, 
   engineOffEvents, 
@@ -134,126 +134,257 @@ function EventTimeline({
   const endDate = dates[dates.length - 1]
   const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1
 
-  // 모든 이벤트를 시간순으로 정렬
-  const allEvents = [
-    ...engineOffEvents.map(e => ({ ...e, type: 'engine_off' as const })),
-    ...collisionEvents.map(e => ({ ...e, type: 'collision' as const }))
-  ].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
-
-  // 차트 높이와 너비
-  const chartHeight = 200
-  const chartWidth = Math.max(600, totalDays * 80)
-  const margin = { top: 20, right: 20, bottom: 40, left: 60 }
-
-  // X축: 날짜
-  const xScale = (dayIndex: number) => margin.left + (dayIndex * (chartWidth - margin.left - margin.right) / (totalDays - 1))
+  // 날짜별 이벤트 개수 계산
+  const eventsByDate: { [key: string]: { collision: number, engineOff: number } } = {}
   
-  // Y축: 이벤트 타입 (0: 충돌, 1: 엔진오프)
-  const yScale = (eventType: 'collision' | 'engine_off') => {
-    return margin.top + (eventType === 'collision' ? 50 : 150)
+  // 초기화
+  for (let i = 0; i < totalDays; i++) {
+    const currentDate = new Date(startDate)
+    currentDate.setDate(startDate.getDate() + i)
+    const dateStr = currentDate.toISOString().split('T')[0]
+    eventsByDate[dateStr] = { collision: 0, engineOff: 0 }
   }
+  
+  // 충돌 이벤트 카운트
+  collisionEvents.forEach(event => {
+    const date = new Date(event.timestamp).toISOString().split('T')[0]
+    if (eventsByDate[date]) {
+      eventsByDate[date].collision++
+    }
+  })
+  
+  // 엔진 오프 이벤트 카운트
+  engineOffEvents.forEach(event => {
+    const date = new Date(event.timestamp).toISOString().split('T')[0]
+    if (eventsByDate[date]) {
+      eventsByDate[date].engineOff++
+    }
+  })
+
+  // 차트 설정
+  const chartHeight = 280
+  const chartWidth = Math.max(800, totalDays * 100)
+  const margin = { top: 30, right: 40, bottom: 60, left: 80 }
+  const maxEvents = Math.max(
+    ...Object.values(eventsByDate).map(d => d.collision + d.engineOff),
+    1
+  )
+
+  // 스케일 함수
+  const xScale = (dayIndex: number) => margin.left + (dayIndex * (chartWidth - margin.left - margin.right) / (totalDays - 1))
+  const yScale = (count: number) => chartHeight - margin.bottom - (count * (chartHeight - margin.top - margin.bottom) / maxEvents)
+  const barWidth = (chartWidth - margin.left - margin.right) / totalDays * 0.6
 
   return (
     <div style={{ 
-      border: '1px solid #e5e7eb', 
-      borderRadius: 8, 
-      padding: 16, 
-      backgroundColor: '#f9fafb' 
+      border: '1px solid #374151', 
+      borderRadius: 12, 
+      padding: 24, 
+      backgroundColor: '#1f2937',
+      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
     }}>
-      {/* 범례 */}
-      <div style={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        marginBottom: 16,
-        gap: 16
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{ 
-            width: 12, 
-            height: 12, 
-            backgroundColor: '#ef4444', 
-            borderRadius: '50%' 
-          }}></div>
-          <span>충돌 이벤트 ({collisionEvents.length}개)</span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{ 
-            width: 12, 
-            height: 12, 
-            backgroundColor: '#f59e0b', 
-            borderRadius: '50%' 
-          }}></div>
-          <span>엔진 오프 이벤트 ({engineOffEvents.length}개)</span>
+      {/* 제목과 범례 */}
+      <div style={{ marginBottom: 24 }}>
+        <h3 style={{ 
+          color: '#f9fafb', 
+          fontSize: 18, 
+          fontWeight: 600, 
+          marginBottom: 16,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12
+        }}>
+          📊 이벤트 타임라인
+          <span style={{ 
+            fontSize: 12, 
+            backgroundColor: '#374151', 
+            color: '#9ca3af', 
+            padding: '4px 8px', 
+            borderRadius: 6 
+          }}>
+            {collisionEvents.length + engineOffEvents.length}개 이벤트
+          </span>
+        </h3>
+        
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: 24
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ 
+              width: 16, 
+              height: 16, 
+              backgroundColor: '#ef4444', 
+              borderRadius: 4,
+              boxShadow: '0 2px 4px rgba(239, 68, 68, 0.3)'
+            }}></div>
+            <span style={{ color: '#f9fafb', fontSize: 14, fontWeight: 500 }}>
+              충돌 이벤트 ({collisionEvents.length}개)
+            </span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ 
+              width: 16, 
+              height: 16, 
+              backgroundColor: '#f59e0b', 
+              borderRadius: 4,
+              boxShadow: '0 2px 4px rgba(245, 158, 11, 0.3)'
+            }}></div>
+            <span style={{ color: '#f9fafb', fontSize: 14, fontWeight: 500 }}>
+              엔진 오프 이벤트 ({engineOffEvents.length}개)
+            </span>
+          </div>
         </div>
       </div>
       
-      {/* X-Y축 차트 */}
+      {/* 막대 그래프 차트 */}
       <div style={{ 
-        border: '1px solid #d1d5db',
-        borderRadius: 4,
-        backgroundColor: 'white',
-        padding: 16,
-        overflow: 'auto'
+        border: '1px solid #374151',
+        borderRadius: 8,
+        backgroundColor: '#111827',
+        padding: 20,
+        overflow: 'auto',
+        position: 'relative'
       }}>
         <svg width={chartWidth} height={chartHeight} style={{ minWidth: '100%' }}>
+          {/* 그리드 배경 */}
+          <defs>
+            <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+              <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#374151" strokeWidth="0.5" opacity="0.3"/>
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#grid)" />
+          
           {/* Y축 라벨 */}
-          <text x={10} y={margin.top + 50} fontSize="12" fill="#6b7280" textAnchor="middle" transform={`rotate(-90, 10, ${margin.top + 50})`}>
-            충돌 이벤트
-          </text>
-          <text x={10} y={margin.top + 150} fontSize="12" fill="#6b7280" textAnchor="middle" transform={`rotate(-90, 10, ${margin.top + 150})`}>
-            엔진 오프 이벤트
+          <text x={margin.left - 10} y={chartHeight - margin.bottom + 5} fontSize="12" fill="#9ca3af" textAnchor="end">
+            이벤트 수
           </text>
           
-          {/* Y축 라인 */}
-          <line x1={margin.left} y1={margin.top} x2={margin.left} y2={chartHeight - margin.bottom} stroke="#e5e7eb" strokeWidth="1" />
-          <line x1={margin.left} y1={margin.top + 50} x2={chartWidth - margin.right} y2={margin.top + 50} stroke="#f3f4f6" strokeWidth="1" strokeDasharray="2,2" />
-          <line x1={margin.left} y1={margin.top + 150} x2={chartWidth - margin.right} y2={margin.top + 150} stroke="#f3f4f6" strokeWidth="1" strokeDasharray="2,2" />
-          
-          {/* X축 라인 */}
-          <line x1={margin.left} y1={chartHeight - margin.bottom} x2={chartWidth - margin.right} y2={chartHeight - margin.bottom} stroke="#e5e7eb" strokeWidth="1" />
-          
-          {/* 날짜별 X축 라벨 */}
-          {Array.from({ length: totalDays }, (_, i) => {
-            const currentDate = new Date(startDate)
-            currentDate.setDate(startDate.getDate() + i)
-            const x = xScale(i)
-            
+          {/* Y축 눈금과 라벨 */}
+          {Array.from({ length: maxEvents + 1 }, (_, i) => {
+            const y = yScale(i)
             return (
               <g key={i}>
-                <line x1={x} y1={chartHeight - margin.bottom} x2={x} y2={chartHeight - margin.bottom + 5} stroke="#6b7280" strokeWidth="1" />
-                <text x={x} y={chartHeight - margin.bottom + 20} fontSize="10" fill="#6b7280" textAnchor="middle">
-                  {currentDate.getDate()}
+                <line 
+                  x1={margin.left - 5} 
+                  y1={y} 
+                  x2={margin.left} 
+                  y2={y} 
+                  stroke="#4b5563" 
+                  strokeWidth="1"
+                />
+                <text 
+                  x={margin.left - 10} 
+                  y={y + 4} 
+                  fontSize="11" 
+                  fill="#6b7280" 
+                  textAnchor="end"
+                >
+                  {i}
                 </text>
+                <line 
+                  x1={margin.left} 
+                  y1={y} 
+                  x2={chartWidth - margin.right} 
+                  y2={y} 
+                  stroke="#374151" 
+                  strokeWidth="0.5"
+                  opacity="0.5"
+                />
               </g>
             )
           })}
           
-          {/* 이벤트 포인트 */}
-          {allEvents.map((event, index) => {
-            const eventDate = new Date(event.timestamp)
-            const dayIndex = Math.floor((eventDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
-            const x = xScale(dayIndex)
-            const y = yScale(event.type)
-            const color = event.type === 'collision' ? '#ef4444' : '#f59e0b'
+          {/* X축 라인 */}
+          <line 
+            x1={margin.left} 
+            y1={chartHeight - margin.bottom} 
+            x2={chartWidth - margin.right} 
+            y2={chartHeight - margin.bottom} 
+            stroke="#4b5563" 
+            strokeWidth="2"
+          />
+          
+          {/* Y축 라인 */}
+          <line 
+            x1={margin.left} 
+            y1={margin.top} 
+            x2={margin.left} 
+            y2={chartHeight - margin.bottom} 
+            stroke="#4b5563" 
+            strokeWidth="2"
+          />
+          
+          {/* 막대 그래프 */}
+          {Array.from({ length: totalDays }, (_, i) => {
+            const currentDate = new Date(startDate)
+            currentDate.setDate(startDate.getDate() + i)
+            const dateStr = currentDate.toISOString().split('T')[0]
+            const dayEvents = eventsByDate[dateStr] || { collision: 0, engineOff: 0 }
+            const x = xScale(i) - barWidth / 2
             
             return (
-              <g key={index}>
-                <circle 
-                  cx={x} 
-                  cy={y} 
-                  r="6" 
-                  fill={color}
-                  stroke="white"
-                  strokeWidth="2"
-                  style={{ cursor: 'pointer' }}
-                />
-                {/* 이벤트 정보 툴팁 */}
-                <title>
-                  {event.type === 'collision' 
-                    ? `충돌 이벤트\n시간: ${new Date(event.timestamp).toLocaleString('ko-KR')}\n손상도: ${event.damage}/5`
-                    : `엔진 오프 이벤트\n시간: ${new Date(event.timestamp).toLocaleString('ko-KR')}\n기어: ${event.gear_status}, 자이로: ${event.gyro}°, 방향: ${event.side}`
-                  }
-                </title>
+              <g key={i}>
+                {/* 충돌 이벤트 막대 */}
+                {dayEvents.collision > 0 && (
+                  <rect
+                    x={x}
+                    y={yScale(dayEvents.collision)}
+                    width={barWidth / 2}
+                    height={chartHeight - margin.bottom - yScale(dayEvents.collision)}
+                    fill="#ef4444"
+                    rx="2"
+                    style={{ 
+                      cursor: 'pointer',
+                      filter: 'drop-shadow(0 2px 4px rgba(239, 68, 68, 0.3))'
+                    }}
+                  >
+                    <title>
+                      충돌 이벤트: {dayEvents.collision}개
+                    </title>
+                  </rect>
+                )}
+                
+                {/* 엔진 오프 이벤트 막대 */}
+                {dayEvents.engineOff > 0 && (
+                  <rect
+                    x={x + barWidth / 2}
+                    y={yScale(dayEvents.engineOff)}
+                    width={barWidth / 2}
+                    height={chartHeight - margin.bottom - yScale(dayEvents.engineOff)}
+                    fill="#f59e0b"
+                    rx="2"
+                    style={{ 
+                      cursor: 'pointer',
+                      filter: 'drop-shadow(0 2px 4px rgba(245, 158, 11, 0.3))'
+                    }}
+                  >
+                    <title>
+                      엔진 오프 이벤트: {dayEvents.engineOff}개
+                    </title>
+                  </rect>
+                )}
+                
+                {/* 날짜 라벨 */}
+                <text 
+                  x={xScale(i)} 
+                  y={chartHeight - margin.bottom + 20} 
+                  fontSize="11" 
+                  fill="#9ca3af" 
+                  textAnchor="middle"
+                >
+                  {currentDate.getDate()}
+                </text>
+                <text 
+                  x={xScale(i)} 
+                  y={chartHeight - margin.bottom + 35} 
+                  fontSize="10" 
+                  fill="#6b7280" 
+                  textAnchor="middle"
+                >
+                  {currentDate.toLocaleDateString('ko-KR', { month: 'short' })}
+                </text>
               </g>
             )
           })}
@@ -261,35 +392,71 @@ function EventTimeline({
       </div>
       
       {/* 이벤트 상세 정보 */}
-      <div style={{ marginTop: 16 }}>
-        <h4 style={{ marginBottom: 8, fontSize: 14, fontWeight: 600 }}>이벤트 상세 정보</h4>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {allEvents.map((event, index) => (
+      <div style={{ marginTop: 24 }}>
+        <h4 style={{ 
+          marginBottom: 16, 
+          fontSize: 16, 
+          fontWeight: 600, 
+          color: '#f9fafb',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8
+        }}>
+          📋 이벤트 상세 정보
+        </h4>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {[...collisionEvents.map(e => ({ ...e, type: 'collision' as const })), ...engineOffEvents.map(e => ({ ...e, type: 'engine_off' as const }))]
+            .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+            .map((event, index) => (
             <div key={`event-${index}`} style={{ 
-              padding: 12, 
-              backgroundColor: event.type === 'collision' ? '#fef2f2' : '#fffbeb', 
-              border: `1px solid ${event.type === 'collision' ? '#fecaca' : '#fed7aa'}`,
-              borderRadius: 6,
-              fontSize: 13
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+              padding: 16, 
+              backgroundColor: event.type === 'collision' ? '#1f1f23' : '#1f1f1f', 
+              border: `1px solid ${event.type === 'collision' ? '#374151' : '#4b5563'}`,
+              borderRadius: 8,
+              fontSize: 14,
+              transition: 'all 0.2s ease',
+              cursor: 'pointer'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = event.type === 'collision' ? '#2d1b1b' : '#2d2d1b'
+              e.currentTarget.style.borderColor = event.type === 'collision' ? '#ef4444' : '#f59e0b'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = event.type === 'collision' ? '#1f1f23' : '#1f1f1f'
+              e.currentTarget.style.borderColor = event.type === 'collision' ? '#374151' : '#4b5563'
+            }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
                 <div style={{ 
-                  width: 8, 
-                  height: 8, 
+                  width: 12, 
+                  height: 12, 
                   backgroundColor: event.type === 'collision' ? '#ef4444' : '#f59e0b', 
-                  borderRadius: '50%' 
+                  borderRadius: '50%',
+                  boxShadow: `0 0 8px ${event.type === 'collision' ? 'rgba(239, 68, 68, 0.5)' : 'rgba(245, 158, 11, 0.5)'}`
                 }}></div>
-                <strong>
-                  {event.type === 'collision' ? '충돌 이벤트' : '엔진 오프 이벤트'}
+                <strong style={{ color: '#f9fafb' }}>
+                  {event.type === 'collision' ? '🚗 충돌 이벤트' : '🔧 엔진 오프 이벤트'}
                 </strong>
-                <span style={{ color: '#6b7280', fontSize: 11 }}>
+                <span style={{ 
+                  color: '#9ca3af', 
+                  fontSize: 12,
+                  backgroundColor: '#374151',
+                  padding: '2px 8px',
+                  borderRadius: 4
+                }}>
                   {new Date(event.timestamp).toLocaleString('ko-KR')}
                 </span>
               </div>
               {event.type === 'collision' ? (
-                <div>손상도: {event.damage}/5</div>
+                <div style={{ color: '#d1d5db' }}>
+                  💥 손상도: <span style={{ color: '#ef4444', fontWeight: 600 }}>{(event as CollisionEvent).damage}/5</span>
+                </div>
               ) : (
-                <div>기어: {event.gear_status} | 자이로: {event.gyro}° | 방향: {event.side}</div>
+                <div style={{ color: '#d1d5db' }}>
+                  ⚙️ 기어: <span style={{ color: '#f59e0b' }}>{(event as EngineOffEvent).gear_status}</span> | 
+                  📐 자이로: <span style={{ color: '#f59e0b' }}>{(event as EngineOffEvent).gyro}°</span> | 
+                  📍 방향: <span style={{ color: '#f59e0b' }}>{(event as EngineOffEvent).side}</span>
+                </div>
               )}
             </div>
           ))}
