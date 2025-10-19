@@ -259,6 +259,16 @@ function EventTimeline({
   engineOffEvents: EngineOffEvent[]
   collisionEvents: CollisionEvent[]
 }) {
+  // 상태 관리
+  const [hoveredBar, setHoveredBar] = useState<{date: string, type: 'collision' | 'engineOff'} | null>(null)
+  const [selectedBar, setSelectedBar] = useState<{date: string, type: 'collision' | 'engineOff'} | null>(null)
+  const [eventFilter, setEventFilter] = useState<'all' | 'collision' | 'engineOff'>('all')
+  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 })
+
+  // 필터링된 이벤트 데이터
+  const filteredEngineOffEvents = eventFilter === 'collision' ? [] : engineOffEvents
+  const filteredCollisionEvents = eventFilter === 'engineOff' ? [] : collisionEvents
+
   // 날짜 범위 계산 (안전한 처리)
   const dates = dailyData
     .filter(d => d.analysis_date) // null/undefined 필터링
@@ -295,7 +305,7 @@ function EventTimeline({
   }
   
   // 충돌 이벤트 카운트 (안전한 처리)
-  collisionEvents.forEach(event => {
+  filteredCollisionEvents.forEach(event => {
     if (event && event.timestamp) {
       const date = new Date(event.timestamp).toISOString().split('T')[0]
       if (eventsByDate[date]) {
@@ -305,7 +315,7 @@ function EventTimeline({
   })
   
   // 엔진 오프 이벤트 카운트 (안전한 처리)
-  engineOffEvents.forEach(event => {
+  filteredEngineOffEvents.forEach(event => {
     if (event && event.timestamp) {
       const date = new Date(event.timestamp).toISOString().split('T')[0]
       if (eventsByDate[date]) {
@@ -359,36 +369,87 @@ function EventTimeline({
           </span>
         </h3>
         
-        <div style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: 24
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <div style={{ 
-              width: 16, 
-              height: 16, 
-              backgroundColor: '#ef4444', 
-              borderRadius: 4,
-              boxShadow: '0 2px 4px rgba(239, 68, 68, 0.3)'
-            }}></div>
-            <span style={{ color: '#f9fafb', fontSize: 14, fontWeight: 500 }}>
-              충돌 이벤트 ({collisionEvents.length}개)
-            </span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{ 
-              width: 16, 
-              height: 16, 
-              backgroundColor: '#f59e0b', 
-              borderRadius: 4,
-              boxShadow: '0 2px 4px rgba(245, 158, 11, 0.3)'
-            }}></div>
-            <span style={{ color: '#f9fafb', fontSize: 14, fontWeight: 500 }}>
-              엔진 오프 이벤트 ({engineOffEvents.length}개)
-            </span>
-          </div>
-        </div>
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: 24,
+              flexWrap: 'wrap'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ 
+                  width: 16, 
+                  height: 16, 
+                  backgroundColor: '#ef4444', 
+                  borderRadius: 4,
+                  boxShadow: '0 2px 4px rgba(239, 68, 68, 0.3)'
+                }}></div>
+                <span style={{ color: '#f9fafb', fontSize: 14, fontWeight: 500 }}>
+                  충돌 이벤트 ({collisionEvents.length}개)
+                </span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ 
+                  width: 16, 
+                  height: 16, 
+                  backgroundColor: '#f59e0b', 
+                  borderRadius: 4,
+                  boxShadow: '0 2px 4px rgba(245, 158, 11, 0.3)'
+                }}></div>
+                <span style={{ color: '#f9fafb', fontSize: 14, fontWeight: 500 }}>
+                  엔진 오프 이벤트 ({engineOffEvents.length}개)
+                </span>
+              </div>
+              
+              {/* 이벤트 필터 버튼들 */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 'auto' }}>
+                <span style={{ color: '#9ca3af', fontSize: 14 }}>필터:</span>
+                <button
+                  onClick={() => setEventFilter('all')}
+                  style={{
+                    padding: '4px 12px',
+                    backgroundColor: eventFilter === 'all' ? '#3b82f6' : '#374151',
+                    border: 'none',
+                    borderRadius: 6,
+                    color: '#ffffff',
+                    fontSize: 12,
+                    cursor: 'pointer',
+                    transition: 'background-color 0.2s'
+                  }}
+                >
+                  전체
+                </button>
+                <button
+                  onClick={() => setEventFilter('collision')}
+                  style={{
+                    padding: '4px 12px',
+                    backgroundColor: eventFilter === 'collision' ? '#ef4444' : '#374151',
+                    border: 'none',
+                    borderRadius: 6,
+                    color: '#ffffff',
+                    fontSize: 12,
+                    cursor: 'pointer',
+                    transition: 'background-color 0.2s'
+                  }}
+                >
+                  충돌만
+                </button>
+                <button
+                  onClick={() => setEventFilter('engineOff')}
+                  style={{
+                    padding: '4px 12px',
+                    backgroundColor: eventFilter === 'engineOff' ? '#f59e0b' : '#374151',
+                    border: 'none',
+                    borderRadius: 6,
+                    color: '#ffffff',
+                    fontSize: 12,
+                    cursor: 'pointer',
+                    transition: 'background-color 0.2s'
+                  }}
+                >
+                  엔진만
+                </button>
+              </div>
+            </div>
       </div>
       
       {/* 막대 그래프 차트 */}
@@ -478,10 +539,10 @@ function EventTimeline({
             const x = xScale(i) - barWidth / 2
             
             // 해당 날짜의 실제 이벤트들 찾기 (안전한 처리)
-            const dayCollisionEvents = collisionEvents.filter(e => 
+            const dayCollisionEvents = filteredCollisionEvents.filter(e => 
               e && e.timestamp && new Date(e.timestamp).toISOString().split('T')[0] === dateStr
             )
-            const dayEngineOffEvents = engineOffEvents.filter(e => 
+            const dayEngineOffEvents = filteredEngineOffEvents.filter(e => 
               e && e.timestamp && new Date(e.timestamp).toISOString().split('T')[0] === dateStr
             )
             
@@ -494,31 +555,32 @@ function EventTimeline({
                     y={yScale(dayEvents.collision)}
                     width={barWidth / 2}
                     height={chartHeight - margin.bottom - yScale(dayEvents.collision)}
-                    fill="#ef4444"
+                    fill={selectedBar?.date === dateStr && selectedBar?.type === 'collision' ? '#dc2626' : '#ef4444'}
                     rx="2"
                     style={{ 
                       cursor: 'pointer',
-                      filter: 'drop-shadow(0 2px 4px rgba(239, 68, 68, 0.3))',
-                      transition: 'all 0.2s ease'
+                      filter: selectedBar?.date === dateStr && selectedBar?.type === 'collision' 
+                        ? 'drop-shadow(0 4px 12px rgba(239, 68, 68, 0.8))' 
+                        : 'drop-shadow(0 2px 4px rgba(239, 68, 68, 0.3))',
+                      transition: 'all 0.2s ease',
+                      stroke: selectedBar?.date === dateStr && selectedBar?.type === 'collision' ? '#ffffff' : 'none',
+                      strokeWidth: selectedBar?.date === dateStr && selectedBar?.type === 'collision' ? 2 : 0
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.filter = 'drop-shadow(0 4px 8px rgba(239, 68, 68, 0.5))'
-                      e.currentTarget.style.fill = '#dc2626'
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.filter = 'drop-shadow(0 2px 4px rgba(239, 68, 68, 0.3))'
-                      e.currentTarget.style.fill = '#ef4444'
-                    }}
-                  >
-                    <title>
-                      {dayCollisionEvents.length > 0 
-                        ? dayCollisionEvents.map(e => 
-                            `충돌 이벤트 (${new Date(e.timestamp).toLocaleTimeString('ko-KR')})\n손상도: ${e.damage}/5`
-                          ).join('\n\n')
-                        : `충돌 이벤트: ${dayEvents.collision}개`
+                      if (!(selectedBar?.date === dateStr && selectedBar?.type === 'collision')) {
+                        e.currentTarget.style.filter = 'drop-shadow(0 4px 8px rgba(239, 68, 68, 0.5))'
+                        e.currentTarget.style.fill = '#dc2626'
                       }
-                    </title>
-                  </rect>
+                      setHoveredBar({ date: dateStr, type: 'collision' })
+                      setTooltipPosition({ x: e.clientX, y: e.clientY })
+                    }}
+                    onMouseLeave={() => {
+                      setHoveredBar(null)
+                    }}
+                    onClick={() => {
+                      setSelectedBar({ date: dateStr, type: 'collision' })
+                    }}
+                  />
                 )}
                 
                 {/* 엔진 오프 이벤트 막대 */}
@@ -528,31 +590,32 @@ function EventTimeline({
                     y={yScale(dayEvents.engineOff)}
                     width={barWidth / 2}
                     height={chartHeight - margin.bottom - yScale(dayEvents.engineOff)}
-                    fill="#f59e0b"
+                    fill={selectedBar?.date === dateStr && selectedBar?.type === 'engineOff' ? '#d97706' : '#f59e0b'}
                     rx="2"
                     style={{ 
                       cursor: 'pointer',
-                      filter: 'drop-shadow(0 2px 4px rgba(245, 158, 11, 0.3))',
-                      transition: 'all 0.2s ease'
+                      filter: selectedBar?.date === dateStr && selectedBar?.type === 'engineOff' 
+                        ? 'drop-shadow(0 4px 12px rgba(245, 158, 11, 0.8))' 
+                        : 'drop-shadow(0 2px 4px rgba(245, 158, 11, 0.3))',
+                      transition: 'all 0.2s ease',
+                      stroke: selectedBar?.date === dateStr && selectedBar?.type === 'engineOff' ? '#ffffff' : 'none',
+                      strokeWidth: selectedBar?.date === dateStr && selectedBar?.type === 'engineOff' ? 2 : 0
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.filter = 'drop-shadow(0 4px 8px rgba(245, 158, 11, 0.5))'
-                      e.currentTarget.style.fill = '#d97706'
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.filter = 'drop-shadow(0 2px 4px rgba(245, 158, 11, 0.3))'
-                      e.currentTarget.style.fill = '#f59e0b'
-                    }}
-                  >
-                    <title>
-                      {dayEngineOffEvents.length > 0 
-                        ? dayEngineOffEvents.map(e => 
-                            `엔진 오프 이벤트 (${new Date(e.timestamp).toLocaleTimeString('ko-KR')})\n기어: ${e.gear_status}, 자이로: ${e.gyro}°, 방향: ${e.side}`
-                          ).join('\n\n')
-                        : `엔진 오프 이벤트: ${dayEvents.engineOff}개`
+                      if (!(selectedBar?.date === dateStr && selectedBar?.type === 'engineOff')) {
+                        e.currentTarget.style.filter = 'drop-shadow(0 4px 8px rgba(245, 158, 11, 0.5))'
+                        e.currentTarget.style.fill = '#d97706'
                       }
-                    </title>
-                  </rect>
+                      setHoveredBar({ date: dateStr, type: 'engineOff' })
+                      setTooltipPosition({ x: e.clientX, y: e.clientY })
+                    }}
+                    onMouseLeave={() => {
+                      setHoveredBar(null)
+                    }}
+                    onClick={() => {
+                      setSelectedBar({ date: dateStr, type: 'engineOff' })
+                    }}
+                  />
                 )}
                 
                 {/* 날짜 라벨 */}
@@ -577,8 +640,66 @@ function EventTimeline({
               </g>
             )
           })}
-        </svg>
-      </div>
+            </svg>
+          </div>
+          
+          {/* 커스텀 툴팁 */}
+          {hoveredBar && (
+            <div
+              style={{
+                position: 'fixed',
+                left: tooltipPosition.x + 10,
+                top: tooltipPosition.y - 10,
+                backgroundColor: '#1f2937',
+                border: '1px solid #374151',
+                borderRadius: 8,
+                padding: 12,
+                boxShadow: '0 10px 25px rgba(0, 0, 0, 0.3)',
+                zIndex: 1000,
+                pointerEvents: 'none',
+                maxWidth: 300
+              }}
+            >
+              {(() => {
+                const dateStr = hoveredBar.date
+                const dayCollisionEvents = filteredCollisionEvents.filter(e => 
+                  e && e.timestamp && new Date(e.timestamp).toISOString().split('T')[0] === dateStr
+                )
+                const dayEngineOffEvents = filteredEngineOffEvents.filter(e => 
+                  e && e.timestamp && new Date(e.timestamp).toISOString().split('T')[0] === dateStr
+                )
+                
+                if (hoveredBar.type === 'collision' && dayCollisionEvents.length > 0) {
+                  return (
+                    <div>
+                      <div style={{ color: '#ef4444', fontWeight: 600, marginBottom: 8 }}>
+                        🚗 충돌 이벤트 ({dayCollisionEvents.length}개)
+                      </div>
+                      {dayCollisionEvents.map((event, idx) => (
+                        <div key={idx} style={{ color: '#d1d5db', fontSize: 12, marginBottom: 4 }}>
+                          • {new Date(event.timestamp).toLocaleTimeString('ko-KR')} - 손상도: {event.damage}/5
+                        </div>
+                      ))}
+                    </div>
+                  )
+                } else if (hoveredBar.type === 'engineOff' && dayEngineOffEvents.length > 0) {
+                  return (
+                    <div>
+                      <div style={{ color: '#f59e0b', fontWeight: 600, marginBottom: 8 }}>
+                        🔧 엔진 오프 이벤트 ({dayEngineOffEvents.length}개)
+                      </div>
+                      {dayEngineOffEvents.map((event, idx) => (
+                        <div key={idx} style={{ color: '#d1d5db', fontSize: 12, marginBottom: 4 }}>
+                          • {new Date(event.timestamp).toLocaleTimeString('ko-KR')} - 기어: {event.gear_status}, 자이로: {event.gyro}°, 방향: {event.side}
+                        </div>
+                      ))}
+                    </div>
+                  )
+                }
+                return null
+              })()}
+            </div>
+          )}
       
       {/* 이벤트 상세 정보 */}
       <div style={{ marginTop: 24 }}>
@@ -593,26 +714,44 @@ function EventTimeline({
         }}>
           📋 이벤트 상세 정보
         </h4>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {[...collisionEvents.filter(e => e && e.timestamp).map(e => ({ ...e, type: 'collision' as const })), ...engineOffEvents.filter(e => e && e.timestamp).map(e => ({ ...e, type: 'engine_off' as const }))]
-            .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
-            .map((event, index) => (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {[...filteredCollisionEvents.filter(e => e && e.timestamp).map(e => ({ ...e, type: 'collision' as const })), ...filteredEngineOffEvents.filter(e => e && e.timestamp).map(e => ({ ...e, type: 'engineOff' as const }))]
+                .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+                .map((event, index) => {
+                  const eventDate = new Date(event.timestamp).toISOString().split('T')[0]
+                  const isSelected = selectedBar?.date === eventDate && selectedBar?.type === event.type
+                  
+                  return (
             <div key={`event-${index}`} style={{ 
               padding: 16, 
-              backgroundColor: event.type === 'collision' ? '#1f1f23' : '#1f1f1f', 
-              border: `1px solid ${event.type === 'collision' ? '#374151' : '#4b5563'}`,
+              backgroundColor: isSelected 
+                ? (event.type === 'collision' ? '#2d1b1b' : '#2d2d1b')
+                : (event.type === 'collision' ? '#1f1f23' : '#1f1f1f'), 
+              border: isSelected 
+                ? `2px solid ${event.type === 'collision' ? '#ef4444' : '#f59e0b'}`
+                : `1px solid ${event.type === 'collision' ? '#374151' : '#4b5563'}`,
               borderRadius: 8,
               fontSize: 14,
               transition: 'all 0.2s ease',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              boxShadow: isSelected 
+                ? `0 0 20px ${event.type === 'collision' ? 'rgba(239, 68, 68, 0.3)' : 'rgba(245, 158, 11, 0.3)'}`
+                : 'none'
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = event.type === 'collision' ? '#2d1b1b' : '#2d2d1b'
-              e.currentTarget.style.borderColor = event.type === 'collision' ? '#ef4444' : '#f59e0b'
+              if (!isSelected) {
+                e.currentTarget.style.backgroundColor = event.type === 'collision' ? '#2d1b1b' : '#2d2d1b'
+                e.currentTarget.style.borderColor = event.type === 'collision' ? '#ef4444' : '#f59e0b'
+              }
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = event.type === 'collision' ? '#1f1f23' : '#1f1f1f'
-              e.currentTarget.style.borderColor = event.type === 'collision' ? '#374151' : '#4b5563'
+              if (!isSelected) {
+                e.currentTarget.style.backgroundColor = event.type === 'collision' ? '#1f1f23' : '#1f1f1f'
+                e.currentTarget.style.borderColor = event.type === 'collision' ? '#374151' : '#4b5563'
+              }
+            }}
+            onClick={() => {
+              setSelectedBar({ date: eventDate, type: event.type })
             }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
@@ -648,7 +787,8 @@ function EventTimeline({
                 </div>
               )}
             </div>
-          ))}
+                  )
+                })}
         </div>
       </div>
     </div>
