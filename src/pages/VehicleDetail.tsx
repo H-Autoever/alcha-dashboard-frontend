@@ -268,7 +268,6 @@ function EventTimeline({
   // 필터링된 이벤트 데이터
   const filteredEngineOffEvents = eventFilter === 'collision' ? [] : engineOffEvents
   const filteredCollisionEvents = eventFilter === 'engineOff' ? [] : collisionEvents
-
   // 날짜 범위 계산 (안전한 처리)
   const dates = dailyData
     .filter(d => d.analysis_date) // null/undefined 필터링
@@ -369,87 +368,87 @@ function EventTimeline({
           </span>
         </h3>
         
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: 24,
+          flexWrap: 'wrap'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <div style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: 24,
-              flexWrap: 'wrap'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div style={{ 
-                  width: 16, 
-                  height: 16, 
-                  backgroundColor: '#ef4444', 
-                  borderRadius: 4,
-                  boxShadow: '0 2px 4px rgba(239, 68, 68, 0.3)'
-                }}></div>
-                <span style={{ color: '#f9fafb', fontSize: 14, fontWeight: 500 }}>
-                  충돌 이벤트 ({collisionEvents.length}개)
-                </span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div style={{ 
-                  width: 16, 
-                  height: 16, 
-                  backgroundColor: '#f59e0b', 
-                  borderRadius: 4,
-                  boxShadow: '0 2px 4px rgba(245, 158, 11, 0.3)'
-                }}></div>
-                <span style={{ color: '#f9fafb', fontSize: 14, fontWeight: 500 }}>
-                  엔진 오프 이벤트 ({engineOffEvents.length}개)
-                </span>
-              </div>
-              
-              {/* 이벤트 필터 버튼들 */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 'auto' }}>
-                <span style={{ color: '#9ca3af', fontSize: 14 }}>필터:</span>
-                <button
-                  onClick={() => setEventFilter('all')}
-                  style={{
-                    padding: '4px 12px',
-                    backgroundColor: eventFilter === 'all' ? '#3b82f6' : '#374151',
-                    border: 'none',
-                    borderRadius: 6,
-                    color: '#ffffff',
-                    fontSize: 12,
-                    cursor: 'pointer',
-                    transition: 'background-color 0.2s'
-                  }}
-                >
-                  전체
-                </button>
-                <button
-                  onClick={() => setEventFilter('collision')}
-                  style={{
-                    padding: '4px 12px',
-                    backgroundColor: eventFilter === 'collision' ? '#ef4444' : '#374151',
-                    border: 'none',
-                    borderRadius: 6,
-                    color: '#ffffff',
-                    fontSize: 12,
-                    cursor: 'pointer',
-                    transition: 'background-color 0.2s'
-                  }}
-                >
-                  충돌만
-                </button>
-                <button
-                  onClick={() => setEventFilter('engineOff')}
-                  style={{
-                    padding: '4px 12px',
-                    backgroundColor: eventFilter === 'engineOff' ? '#f59e0b' : '#374151',
-                    border: 'none',
-                    borderRadius: 6,
-                    color: '#ffffff',
-                    fontSize: 12,
-                    cursor: 'pointer',
-                    transition: 'background-color 0.2s'
-                  }}
-                >
-                  엔진만
-                </button>
-              </div>
-            </div>
+              width: 16, 
+              height: 16, 
+              backgroundColor: '#ef4444', 
+              borderRadius: 4,
+              boxShadow: '0 2px 4px rgba(239, 68, 68, 0.3)'
+            }}></div>
+            <span style={{ color: '#f9fafb', fontSize: 14, fontWeight: 500 }}>
+              충돌 이벤트 ({collisionEvents.length}개)
+            </span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ 
+              width: 16, 
+              height: 16, 
+              backgroundColor: '#f59e0b', 
+              borderRadius: 4,
+              boxShadow: '0 2px 4px rgba(245, 158, 11, 0.3)'
+            }}></div>
+            <span style={{ color: '#f9fafb', fontSize: 14, fontWeight: 500 }}>
+              엔진 오프 이벤트 ({engineOffEvents.length}개)
+            </span>
+          </div>
+          
+          {/* 이벤트 필터 버튼들 */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 'auto' }}>
+            <span style={{ color: '#9ca3af', fontSize: 14 }}>필터:</span>
+            <button
+              onClick={() => setEventFilter('all')}
+              style={{
+                padding: '4px 12px',
+                backgroundColor: eventFilter === 'all' ? '#3b82f6' : '#374151',
+                border: 'none',
+                borderRadius: 6,
+                color: '#ffffff',
+                fontSize: 12,
+                cursor: 'pointer',
+                transition: 'background-color 0.2s'
+              }}
+            >
+              전체
+            </button>
+            <button
+              onClick={() => setEventFilter('collision')}
+              style={{
+                padding: '4px 12px',
+                backgroundColor: eventFilter === 'collision' ? '#ef4444' : '#374151',
+                border: 'none',
+                borderRadius: 6,
+                color: '#ffffff',
+                fontSize: 12,
+                cursor: 'pointer',
+                transition: 'background-color 0.2s'
+              }}
+            >
+              충돌만
+            </button>
+            <button
+              onClick={() => setEventFilter('engineOff')}
+              style={{
+                padding: '4px 12px',
+                backgroundColor: eventFilter === 'engineOff' ? '#f59e0b' : '#374151',
+                border: 'none',
+                borderRadius: 6,
+                color: '#ffffff',
+                fontSize: 12,
+                cursor: 'pointer',
+                transition: 'background-color 0.2s'
+              }}
+            >
+              엔진만
+            </button>
+          </div>
+        </div>
       </div>
       
       {/* 막대 그래프 차트 */}
@@ -577,8 +576,13 @@ function EventTimeline({
                     onMouseLeave={() => {
                       setHoveredBar(null)
                     }}
-                    onClick={() => {
-                      setSelectedBar({ date: dateStr, type: 'collision' })
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      if (selectedBar?.date === dateStr && selectedBar?.type === 'collision') {
+                        setSelectedBar(null) // 이미 선택된 막대면 해제
+                      } else {
+                        setSelectedBar({ date: dateStr, type: 'collision' })
+                      }
                     }}
                   />
                 )}
@@ -612,8 +616,13 @@ function EventTimeline({
                     onMouseLeave={() => {
                       setHoveredBar(null)
                     }}
-                    onClick={() => {
-                      setSelectedBar({ date: dateStr, type: 'engineOff' })
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      if (selectedBar?.date === dateStr && selectedBar?.type === 'engineOff') {
+                        setSelectedBar(null) // 이미 선택된 막대면 해제
+                      } else {
+                        setSelectedBar({ date: dateStr, type: 'engineOff' })
+                      }
                     }}
                   />
                 )}
@@ -714,14 +723,14 @@ function EventTimeline({
         }}>
           📋 이벤트 상세 정보
         </h4>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {[...filteredCollisionEvents.filter(e => e && e.timestamp).map(e => ({ ...e, type: 'collision' as const })), ...filteredEngineOffEvents.filter(e => e && e.timestamp).map(e => ({ ...e, type: 'engineOff' as const }))]
-                .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
-                .map((event, index) => {
-                  const eventDate = new Date(event.timestamp).toISOString().split('T')[0]
-                  const isSelected = selectedBar?.date === eventDate && selectedBar?.type === event.type
-                  
-                  return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {[...filteredCollisionEvents.filter(e => e && e.timestamp).map(e => ({ ...e, type: 'collision' as const })), ...filteredEngineOffEvents.filter(e => e && e.timestamp).map(e => ({ ...e, type: 'engineOff' as const }))]
+            .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+            .map((event, index) => {
+              const eventDate = new Date(event.timestamp).toISOString().split('T')[0]
+              const isSelected = selectedBar?.date === eventDate && selectedBar?.type === event.type
+              
+              return (
             <div key={`event-${index}`} style={{ 
               padding: 16, 
               backgroundColor: isSelected 
@@ -750,8 +759,13 @@ function EventTimeline({
                 e.currentTarget.style.borderColor = event.type === 'collision' ? '#374151' : '#4b5563'
               }
             }}
-            onClick={() => {
-              setSelectedBar({ date: eventDate, type: event.type })
+            onClick={(e) => {
+              e.stopPropagation()
+              if (selectedBar?.date === eventDate && selectedBar?.type === event.type) {
+                setSelectedBar(null) // 이미 선택된 이벤트면 해제
+              } else {
+                setSelectedBar({ date: eventDate, type: event.type })
+              }
             }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
