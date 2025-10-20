@@ -65,9 +65,9 @@ export default function VehicleDetailPage() {
     setLoading(true)
     
     // 차량 상세 정보, 이벤트 데이터, 텔레메트리 데이터를 병렬로 로드
-    // 텔레메트리: 2024-10-20 11:00:00 ~ 12:00:00 (1시간)
-    const telemetryStart = '2024-10-20T11:00:00'
-    const telemetryEnd = '2024-10-20T12:00:00'
+    // 텔레메트리: 2025-09-23 01:54:26 ~ 02:54:26 (1시간)
+    const telemetryStart = '2025-09-23T01:54:26Z'
+    const telemetryEnd = '2025-09-23T02:54:26Z'
     
     Promise.all([
       api<VehicleDetail>(`/api/vehicles/${encodeURIComponent(vehicleId)}`),
@@ -153,7 +153,7 @@ export default function VehicleDetailPage() {
             alignItems: 'center',
             gap: 12
           }}>
-            📊 실시간 텔레메트리 (2024-10-20 11:00-12:00)
+            📊 실시간 텔레메트리 (2025-09-23 01:54-02:54 UTC)
             <span style={{ 
               fontSize: 12, 
               backgroundColor: '#374151', 
@@ -1074,7 +1074,7 @@ function TelemetryChart({
             fontWeight: 600, 
             marginBottom: 12 
           }}>
-            📌 이벤트 요약 (11:00-12:00)
+            📌 이벤트 요약 (01:54-02:54 UTC)
           </h5>
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
             {eventsInRange.map((event, idx) => (
