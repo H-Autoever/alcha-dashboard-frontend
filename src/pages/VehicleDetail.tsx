@@ -153,18 +153,39 @@ export default function VehicleDetailPage() {
       </div>
       
       {/* 차량 기본 정보 */}
-      <div className="cards" style={{ marginBottom: 24 }}>
-        <div className="card">
-          <div className="stat-label">차량 ID</div>
-          <div className="stat-value" style={{ fontSize: '15px' }}>{detail.vehicle_id}</div>
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          marginBottom: 16 
+        }}>
+          <h3 style={{ margin: 0 }}>기본 정보</h3>
         </div>
-        <div className="card">
-          <div className="stat-label">모델</div>
-          <div className="stat-value" style={{ fontSize: '15px' }}>{detail.model}</div>
-        </div>
-        <div className="card">
-          <div className="stat-label">연식</div>
-          <div className="stat-value" style={{ fontSize: '15px' }}>{detail.year ?? '-'}</div>
+        
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ 
+            backgroundColor: 'rgba(17,24,39,0.5)', 
+            border: '1px solid #374151',
+            borderRadius: '12px',
+            padding: '16px',
+            marginBottom: 24,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '16px'
+          }}>
+            <div style={{ color: '#e5e7eb', fontSize: '15px' }}>
+              <span style={{ color: '#94a3b8', fontWeight: 'bold' }}>차량 ID:</span> <span style={{ color: '#9ca3af' }}>{detail.vehicle_id}</span>
+            </div>
+            <div style={{ color: '#374151', fontSize: '20px' }}>|</div>
+            <div style={{ color: '#e5e7eb', fontSize: '15px' }}>
+              <span style={{ color: '#94a3b8', fontWeight: 'bold' }}>모델:</span> <span style={{ color: '#9ca3af' }}>{detail.model}</span>
+            </div>
+            <div style={{ color: '#374151', fontSize: '20px' }}>|</div>
+            <div style={{ color: '#e5e7eb', fontSize: '15px' }}>
+              <span style={{ color: '#94a3b8', fontWeight: 'bold' }}>연식:</span> <span style={{ color: '#9ca3af' }}>{detail.year ?? '-'}</span>
+            </div>
+          </div>
         </div>
       </div>
 
