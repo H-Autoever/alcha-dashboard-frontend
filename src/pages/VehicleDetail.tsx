@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, NavLink } from 'react-router-dom'
 import { api } from '../api/client'
 import { Table, Alert, Loader } from '../components/UI'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine } from 'recharts'
@@ -15,7 +15,7 @@ type VehicleDetail = {
   vehicle_id: string
   model: string
   year: number | null
-  daily_data: DailyData[]
+  daily_data: DailyData[] | null
 }
 
 type EngineOffEvent = {
@@ -80,16 +80,20 @@ export default function VehicleDetailPage() {
         setTelemetryData(telemetry)
         
         // 초기 필터링된 데이터 설정 (전체 데이터)
-        setFilteredDailyData(vehicleDetail.daily_data)
+        const normalizedDaily = Array.isArray(vehicleDetail.daily_data) ? vehicleDetail.daily_data : []
+        setFilteredDailyData(normalizedDaily)
         
         // 날짜 범위 초기화 (전체 데이터 범위)
-        if (vehicleDetail.daily_data.length > 0) {
-          const dates = vehicleDetail.daily_data
+        if (normalizedDaily.length > 0) {
+          const dates = normalizedDaily
             .filter(d => d.analysis_date)
             .map(d => d.analysis_date!)
             .sort()
           setStartDate(dates[0])
           setEndDate(dates[dates.length - 1])
+        } else {
+          setStartDate('')
+          setEndDate('')
         }
       })
       .catch((e) => setError(String(e)))
@@ -98,7 +102,7 @@ export default function VehicleDetailPage() {
 
   // 날짜 필터링 로직
   useEffect(() => {
-    if (!detail?.daily_data) return
+    if (!detail?.daily_data || !Array.isArray(detail.daily_data)) return
     
     let filtered = detail.daily_data
     
@@ -119,25 +123,48 @@ export default function VehicleDetailPage() {
 
   return (
     <div>
-      <p><Link className="link" to="/">← 대시보드</Link></p>
-      <div className="page-title">
-        <h1>차량 상세 정보</h1>
-        <span className="badge">기본정보</span>
+      <p><Link className="link" to="/" style={{ textAlign: 'left', margin: '0 0 10px 0' }}>← 차량 목록으로</Link></p>
+
+      
+      {/* 탭 네비게이션 */}
+      <div className="tab-group tab-group--large" style={{ fontSize: '50px' }}>
+        <NavLink 
+          to={`/vehicle/${vehicleId}`} 
+          end 
+          className={({ isActive }) => `tab ${isActive ? 'active' : ''}`}
+          style={{ textDecoration: 'none', fontSize: '50px !important' }}
+        >
+          차량 상세 정보
+        </NavLink>
+        <NavLink 
+          to={`/vehicle/${vehicleId}/score`} 
+          className={({ isActive }) => `tab ${isActive ? 'active' : ''}`}
+          style={{ textDecoration: 'none', fontSize: '50px !important' }}
+        >
+          차량 평가 점수
+        </NavLink>
+        <NavLink 
+          to={`/vehicle/${vehicleId}/habitmonthly`} 
+          className={({ isActive }) => `tab ${isActive ? 'active' : ''}`}
+          style={{ textDecoration: 'none', fontSize: '70px !important' }}
+        >
+          운전자 습관 분석
+        </NavLink>
       </div>
       
       {/* 차량 기본 정보 */}
       <div className="cards" style={{ marginBottom: 24 }}>
         <div className="card">
           <div className="stat-label">차량 ID</div>
-          <div className="stat-value">{detail.vehicle_id}</div>
+          <div className="stat-value" style={{ fontSize: '15px' }}>{detail.vehicle_id}</div>
         </div>
         <div className="card">
           <div className="stat-label">모델</div>
-          <div className="stat-value">{detail.model}</div>
+          <div className="stat-value" style={{ fontSize: '15px' }}>{detail.model}</div>
         </div>
         <div className="card">
           <div className="stat-label">연식</div>
-          <div className="stat-value">{detail.year ?? '-'}</div>
+          <div className="stat-value" style={{ fontSize: '15px' }}>{detail.year ?? '-'}</div>
         </div>
       </div>
 
