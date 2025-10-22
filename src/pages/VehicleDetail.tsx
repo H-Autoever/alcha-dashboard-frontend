@@ -65,13 +65,13 @@ export default function VehicleDetailPage() {
     setLoading(true)
     
     // 차량 상세 정보, 이벤트 데이터, 텔레메트리 데이터를 병렬로 로드
-    // 텔레메트리: 2025-09-23 01:54:26 ~ 02:54:26 (1시간)
+    // 텔레메트리: 실제 데이터가 있는 시간 범위 (2025-09-23 01:54:26 ~ 02:54:26 UTC)
     const telemetryStart = '2025-09-23T01:54:26Z'
     const telemetryEnd = '2025-09-23T02:54:26Z'
     
     Promise.all([
       api<VehicleDetail>(`/api/vehicles/${encodeURIComponent(vehicleId)}`),
-      api<EventData>(`/api/events/${encodeURIComponent(vehicleId)}`),
+      api<EventData>(`/api/events/${encodeURIComponent(vehicleId)}/range?start_time=${telemetryStart}&end_time=${telemetryEnd}`),
       api<TelemetryData[]>(`/api/telemetry/${encodeURIComponent(vehicleId)}?start_time=${telemetryStart}&end_time=${telemetryEnd}`)
     ])
       .then(([vehicleDetail, events, telemetry]) => {
@@ -140,50 +140,6 @@ export default function VehicleDetailPage() {
           <div className="stat-value">{detail.year ?? '-'}</div>
         </div>
       </div>
-
-      {/* 텔레메트리 시각화 (VHC-001, 002, 003만) */}
-      {['VHC-001', 'VHC-002', 'VHC-003'].includes(detail.vehicle_id) && (
-        <div style={{ marginBottom: 32 }}>
-          <h3 style={{ 
-            color: '#f9fafb', 
-            fontSize: 18, 
-            fontWeight: 600, 
-            marginBottom: 16,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12
-          }}>
-            📊 실시간 텔레메트리 (2025-09-23 01:54-02:54 UTC)
-            <span style={{ 
-              fontSize: 12, 
-              backgroundColor: '#374151', 
-              color: '#9ca3af', 
-              padding: '4px 8px', 
-              borderRadius: 6 
-            }}>
-              {telemetryData.length}개 데이터 포인트
-            </span>
-          </h3>
-          
-          {telemetryData.length > 0 ? (
-            <TelemetryChart 
-              telemetryData={telemetryData} 
-              eventData={eventData}
-              vehicleId={detail.vehicle_id}
-            />
-          ) : (
-            <div style={{ 
-              border: '1px solid #374151', 
-              borderRadius: 12, 
-              padding: 24, 
-              backgroundColor: '#1f2937',
-              textAlign: 'center'
-            }}>
-              <p style={{ color: '#9ca3af' }}>텔레메트리 데이터를 불러오는 중...</p>
-            </div>
-          )}
-        </div>
-      )}
 
           {/* 날짜별 데이터 테이블 */}
           <div style={{ marginBottom: 24 }}>
@@ -294,6 +250,50 @@ export default function VehicleDetailPage() {
             ))}
           </Table>
 
+      {/* 텔레메트리 시각화 (VHC-001, 002, 003만) */}
+      {['VHC-001', 'VHC-002', 'VHC-003'].includes(detail.vehicle_id) && (
+        <div style={{ marginBottom: 32 }}>
+          <h3 style={{ 
+            color: '#f9fafb', 
+            fontSize: 18, 
+            fontWeight: 600, 
+            marginBottom: 16,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12
+          }}>
+            📊 실시간 텔레메트리 (최근 1시간)
+            <span style={{ 
+              fontSize: 12, 
+              backgroundColor: '#374151', 
+              color: '#9ca3af', 
+              padding: '4px 8px', 
+              borderRadius: 6 
+            }}>
+              {telemetryData.length}개 데이터 포인트
+            </span>
+          </h3>
+          
+          {telemetryData.length > 0 ? (
+            <TelemetryChart 
+              telemetryData={telemetryData} 
+              eventData={eventData}
+              vehicleId={detail.vehicle_id}
+            />
+          ) : (
+            <div style={{ 
+              border: '1px solid #374151', 
+              borderRadius: 12, 
+              padding: 24, 
+              backgroundColor: '#1f2937',
+              textAlign: 'center'
+            }}>
+              <p style={{ color: '#9ca3af' }}>텔레메트리 데이터를 불러오는 중...</p>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* 이벤트 그래프 섹션 */}
       <h3>이벤트 타임라인</h3>
       {eventData && (
@@ -328,13 +328,13 @@ function EventTimeline({
   // 필터링된 이벤트 데이터
   const filteredEngineOffEvents = eventFilter === 'collision' ? [] : engineOffEvents
   const filteredCollisionEvents = eventFilter === 'engineOff' ? [] : collisionEvents
-  // 날짜 범위 계산 (안전한 처리)
-  const dates = dailyData
-    .filter(d => d.analysis_date) // null/undefined 필터링
-    .map(d => new Date(d.analysis_date!))
-    .sort((a, b) => a.getTime() - b.getTime())
+  // 이벤트 데이터에서 날짜 범위 계산
+  const allEventTimestamps = [
+    ...filteredCollisionEvents.map(e => e.timestamp),
+    ...filteredEngineOffEvents.map(e => e.timestamp)
+  ].filter(t => t).map(t => new Date(t)).sort((a, b) => a.getTime() - b.getTime())
   
-  if (dates.length === 0) {
+  if (allEventTimestamps.length === 0) {
     return (
       <div style={{ 
         border: '1px solid #374151', 
@@ -348,27 +348,53 @@ function EventTimeline({
     )
   }
   
-  const startDate = dates[0]
-  const endDate = dates[dates.length - 1]
-  const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1
+  const startDate = allEventTimestamps[0]
+  const endDate = allEventTimestamps[allEventTimestamps.length - 1]
+  
+  // 같은 날의 이벤트인 경우 분 단위로 처리, 다른 날이면 실제 일수 계산
+  const isSameDay = startDate.toDateString() === endDate.toDateString()
+  const totalMinutes = isSameDay ? 
+    Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60)) + 1 : // 분 단위
+    Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1 // 일 단위
 
-  // 날짜별 이벤트 개수 계산
-  const eventsByDate: { [key: string]: { collision: number, engineOff: number } } = {}
+  // 분별/날짜별 이벤트 개수 계산
+  const eventsByTime: { [key: string]: { collision: number, engineOff: number } } = {}
   
   // 초기화
-  for (let i = 0; i < totalDays; i++) {
-    const currentDate = new Date(startDate)
-    currentDate.setDate(startDate.getDate() + i)
-    const dateStr = currentDate.toISOString().split('T')[0]
-    eventsByDate[dateStr] = { collision: 0, engineOff: 0 }
+  if (isSameDay) {
+    // 같은 날의 이벤트인 경우 분 단위로 초기화
+    for (let i = 0; i < totalMinutes; i++) {
+      const currentTime = new Date(startDate)
+      currentTime.setMinutes(startDate.getMinutes() + i)
+      const timeStr = currentTime.toISOString().slice(0, 16) // YYYY-MM-DDTHH:MM 형식
+      eventsByTime[timeStr] = { collision: 0, engineOff: 0 }
+    }
+  } else {
+    // 여러 날의 이벤트인 경우 날짜 단위로 초기화
+    for (let i = 0; i < totalMinutes; i++) {
+      const currentDate = new Date(startDate)
+      currentDate.setDate(startDate.getDate() + i)
+      const dateStr = currentDate.toISOString().split('T')[0]
+      eventsByTime[dateStr] = { collision: 0, engineOff: 0 }
+    }
   }
   
   // 충돌 이벤트 카운트 (안전한 처리)
   filteredCollisionEvents.forEach(event => {
     if (event && event.timestamp) {
-      const date = new Date(event.timestamp).toISOString().split('T')[0]
-      if (eventsByDate[date]) {
-        eventsByDate[date].collision++
+      const eventTime = new Date(event.timestamp)
+      if (isSameDay) {
+        // 같은 날의 경우 분 단위로 그룹화
+        const timeStr = eventTime.toISOString().slice(0, 16) // YYYY-MM-DDTHH:MM 형식
+        if (eventsByTime[timeStr]) {
+          eventsByTime[timeStr].collision++
+        }
+      } else {
+        // 다른 날의 경우 날짜 단위로 그룹화
+        const date = eventTime.toISOString().split('T')[0]
+        if (eventsByTime[date]) {
+          eventsByTime[date].collision++
+        }
       }
     }
   })
@@ -376,26 +402,36 @@ function EventTimeline({
   // 엔진 오프 이벤트 카운트 (안전한 처리)
   filteredEngineOffEvents.forEach(event => {
     if (event && event.timestamp) {
-      const date = new Date(event.timestamp).toISOString().split('T')[0]
-      if (eventsByDate[date]) {
-        eventsByDate[date].engineOff++
+      const eventTime = new Date(event.timestamp)
+      if (isSameDay) {
+        // 같은 날의 경우 분 단위로 그룹화
+        const timeStr = eventTime.toISOString().slice(0, 16) // YYYY-MM-DDTHH:MM 형식
+        if (eventsByTime[timeStr]) {
+          eventsByTime[timeStr].engineOff++
+        }
+      } else {
+        // 다른 날의 경우 날짜 단위로 그룹화
+        const date = eventTime.toISOString().split('T')[0]
+        if (eventsByTime[date]) {
+          eventsByTime[date].engineOff++
+        }
       }
     }
   })
 
-  // 차트 설정 (한달 데이터에 맞게 조정)
+  // 차트 설정 (분 단위 데이터에 맞게 조정)
   const chartHeight = 320
-  const chartWidth = Math.max(1200, totalDays * 25) // 30일 × 25px = 750px 최소
+  const chartWidth = Math.max(1200, totalMinutes * 8) // 분 단위로 조정 (8px per minute)
   const margin = { top: 30, right: 40, bottom: 60, left: 80 }
   const maxEvents = Math.max(
-    ...Object.values(eventsByDate).map(d => d.collision + d.engineOff),
+    ...Object.values(eventsByTime).map(d => d.collision + d.engineOff),
     1
   )
 
   // 스케일 함수
-  const xScale = (dayIndex: number) => margin.left + (dayIndex * (chartWidth - margin.left - margin.right) / (totalDays - 1))
+  const xScale = (timeIndex: number) => margin.left + (timeIndex * (chartWidth - margin.left - margin.right) / (totalMinutes - 1))
   const yScale = (count: number) => chartHeight - margin.bottom - (count * (chartHeight - margin.top - margin.bottom) / maxEvents)
-  const barWidth = (chartWidth - margin.left - margin.right) / totalDays * 0.6
+  const barWidth = (chartWidth - margin.left - margin.right) / totalMinutes * 0.6
 
   return (
     <div style={{ 
@@ -590,47 +626,71 @@ function EventTimeline({
           />
           
           {/* 막대 그래프 */}
-          {Array.from({ length: totalDays }, (_, i) => {
-            const currentDate = new Date(startDate)
-            currentDate.setDate(startDate.getDate() + i)
-            const dateStr = currentDate.toISOString().split('T')[0]
-            const dayEvents = eventsByDate[dateStr] || { collision: 0, engineOff: 0 }
+          {Array.from({ length: totalMinutes }, (_, i) => {
+            let currentTime: Date
+            let timeStr: string
+            
+            if (isSameDay) {
+              // 같은 날의 이벤트인 경우 분 단위로 처리
+              currentTime = new Date(startDate)
+              currentTime.setMinutes(startDate.getMinutes() + i)
+              timeStr = currentTime.toISOString().slice(0, 16) // YYYY-MM-DDTHH:MM 형식
+            } else {
+              // 여러 날의 이벤트인 경우 날짜 단위로 처리
+              currentTime = new Date(startDate)
+              currentTime.setDate(startDate.getDate() + i)
+              timeStr = currentTime.toISOString().split('T')[0]
+            }
+            
+            const timeEvents = eventsByTime[timeStr] || { collision: 0, engineOff: 0 }
             const x = xScale(i) - barWidth / 2
             
-            // 해당 날짜의 실제 이벤트들 찾기 (안전한 처리)
-            const dayCollisionEvents = filteredCollisionEvents.filter(e => 
-              e && e.timestamp && new Date(e.timestamp).toISOString().split('T')[0] === dateStr
-            )
-            const dayEngineOffEvents = filteredEngineOffEvents.filter(e => 
-              e && e.timestamp && new Date(e.timestamp).toISOString().split('T')[0] === dateStr
-            )
+            // 해당 시간의 실제 이벤트들 찾기 (안전한 처리)
+            const timeCollisionEvents = filteredCollisionEvents.filter(e => {
+              if (!e || !e.timestamp) return false
+              const eventTime = new Date(e.timestamp)
+              if (isSameDay) {
+                return eventTime.toISOString().slice(0, 16) === timeStr
+              } else {
+                return eventTime.toISOString().split('T')[0] === timeStr
+              }
+            })
+            const timeEngineOffEvents = filteredEngineOffEvents.filter(e => {
+              if (!e || !e.timestamp) return false
+              const eventTime = new Date(e.timestamp)
+              if (isSameDay) {
+                return eventTime.toISOString().slice(0, 16) === timeStr
+              } else {
+                return eventTime.toISOString().split('T')[0] === timeStr
+              }
+            })
             
             return (
               <g key={i}>
                 {/* 충돌 이벤트 막대 */}
-                {dayEvents.collision > 0 && (
+                {timeEvents.collision > 0 && (
                   <rect
                     x={x}
-                    y={yScale(dayEvents.collision)}
+                    y={yScale(timeEvents.collision)}
                     width={barWidth / 2}
-                    height={chartHeight - margin.bottom - yScale(dayEvents.collision)}
-                    fill={selectedBar?.date === dateStr && selectedBar?.type === 'collision' ? '#dc2626' : '#ef4444'}
+                    height={chartHeight - margin.bottom - yScale(timeEvents.collision)}
+                    fill={selectedBar?.date === timeStr && selectedBar?.type === 'collision' ? '#dc2626' : '#ef4444'}
                     rx="2"
                     style={{ 
                       cursor: 'pointer',
-                      filter: selectedBar?.date === dateStr && selectedBar?.type === 'collision' 
+                      filter: selectedBar?.date === timeStr && selectedBar?.type === 'collision' 
                         ? 'drop-shadow(0 4px 12px rgba(239, 68, 68, 0.8))' 
                         : 'drop-shadow(0 2px 4px rgba(239, 68, 68, 0.3))',
                       transition: 'all 0.2s ease',
-                      stroke: selectedBar?.date === dateStr && selectedBar?.type === 'collision' ? '#ffffff' : 'none',
-                      strokeWidth: selectedBar?.date === dateStr && selectedBar?.type === 'collision' ? 2 : 0
+                      stroke: selectedBar?.date === timeStr && selectedBar?.type === 'collision' ? '#ffffff' : 'none',
+                      strokeWidth: selectedBar?.date === timeStr && selectedBar?.type === 'collision' ? 2 : 0
                     }}
                     onMouseEnter={(e) => {
-                      if (!(selectedBar?.date === dateStr && selectedBar?.type === 'collision')) {
+                      if (!(selectedBar?.date === timeStr && selectedBar?.type === 'collision')) {
                         e.currentTarget.style.filter = 'drop-shadow(0 4px 8px rgba(239, 68, 68, 0.5))'
                         e.currentTarget.style.fill = '#dc2626'
                       }
-                      setHoveredBar({ date: dateStr, type: 'collision' })
+                      setHoveredBar({ date: timeStr, type: 'collision' })
                       setTooltipPosition({ x: e.clientX, y: e.clientY })
                     }}
                     onMouseLeave={() => {
@@ -638,39 +698,39 @@ function EventTimeline({
                     }}
                     onClick={(e) => {
                       e.stopPropagation()
-                      if (selectedBar?.date === dateStr && selectedBar?.type === 'collision') {
+                      if (selectedBar?.date === timeStr && selectedBar?.type === 'collision') {
                         setSelectedBar(null) // 이미 선택된 막대면 해제
                       } else {
-                        setSelectedBar({ date: dateStr, type: 'collision' })
+                        setSelectedBar({ date: timeStr, type: 'collision' })
                       }
                     }}
                   />
                 )}
                 
                 {/* 엔진 오프 이벤트 막대 */}
-                {dayEvents.engineOff > 0 && (
+                {timeEvents.engineOff > 0 && (
                   <rect
                     x={x + barWidth / 2}
-                    y={yScale(dayEvents.engineOff)}
+                    y={yScale(timeEvents.engineOff)}
                     width={barWidth / 2}
-                    height={chartHeight - margin.bottom - yScale(dayEvents.engineOff)}
-                    fill={selectedBar?.date === dateStr && selectedBar?.type === 'engineOff' ? '#d97706' : '#f59e0b'}
+                    height={chartHeight - margin.bottom - yScale(timeEvents.engineOff)}
+                    fill={selectedBar?.date === timeStr && selectedBar?.type === 'engineOff' ? '#d97706' : '#f59e0b'}
                     rx="2"
                     style={{ 
                       cursor: 'pointer',
-                      filter: selectedBar?.date === dateStr && selectedBar?.type === 'engineOff' 
+                      filter: selectedBar?.date === timeStr && selectedBar?.type === 'engineOff' 
                         ? 'drop-shadow(0 4px 12px rgba(245, 158, 11, 0.8))' 
                         : 'drop-shadow(0 2px 4px rgba(245, 158, 11, 0.3))',
                       transition: 'all 0.2s ease',
-                      stroke: selectedBar?.date === dateStr && selectedBar?.type === 'engineOff' ? '#ffffff' : 'none',
-                      strokeWidth: selectedBar?.date === dateStr && selectedBar?.type === 'engineOff' ? 2 : 0
+                      stroke: selectedBar?.date === timeStr && selectedBar?.type === 'engineOff' ? '#ffffff' : 'none',
+                      strokeWidth: selectedBar?.date === timeStr && selectedBar?.type === 'engineOff' ? 2 : 0
                     }}
                     onMouseEnter={(e) => {
-                      if (!(selectedBar?.date === dateStr && selectedBar?.type === 'engineOff')) {
+                      if (!(selectedBar?.date === timeStr && selectedBar?.type === 'engineOff')) {
                         e.currentTarget.style.filter = 'drop-shadow(0 4px 8px rgba(245, 158, 11, 0.5))'
                         e.currentTarget.style.fill = '#d97706'
                       }
-                      setHoveredBar({ date: dateStr, type: 'engineOff' })
+                      setHoveredBar({ date: timeStr, type: 'engineOff' })
                       setTooltipPosition({ x: e.clientX, y: e.clientY })
                     }}
                     onMouseLeave={() => {
@@ -678,16 +738,16 @@ function EventTimeline({
                     }}
                     onClick={(e) => {
                       e.stopPropagation()
-                      if (selectedBar?.date === dateStr && selectedBar?.type === 'engineOff') {
+                      if (selectedBar?.date === timeStr && selectedBar?.type === 'engineOff') {
                         setSelectedBar(null) // 이미 선택된 막대면 해제
                       } else {
-                        setSelectedBar({ date: dateStr, type: 'engineOff' })
+                        setSelectedBar({ date: timeStr, type: 'engineOff' })
                       }
                     }}
                   />
                 )}
                 
-                {/* 날짜 라벨 */}
+                {/* 날짜/시간 라벨 */}
                 <text 
                   x={xScale(i)} 
                   y={chartHeight - margin.bottom + 20} 
@@ -695,7 +755,10 @@ function EventTimeline({
                   fill="#9ca3af" 
                   textAnchor="middle"
                 >
-                  {currentDate.getDate()}
+                  {isSameDay ? 
+                    currentTime.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }) :
+                    currentTime.getDate()
+                  }
                 </text>
                 <text 
                   x={xScale(i)} 
@@ -704,7 +767,10 @@ function EventTimeline({
                   fill="#6b7280" 
                   textAnchor="middle"
                 >
-                  {currentDate.toLocaleDateString('ko-KR', { month: 'short' })}
+                  {isSameDay ? 
+                    currentTime.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' }) :
+                    currentTime.toLocaleDateString('ko-KR', { month: 'short' })
+                  }
                 </text>
               </g>
             )
@@ -730,38 +796,60 @@ function EventTimeline({
               }}
             >
               {(() => {
-                const dateStr = hoveredBar.date
-                const dayCollisionEvents = filteredCollisionEvents.filter(e => 
-                  e && e.timestamp && new Date(e.timestamp).toISOString().split('T')[0] === dateStr
-                )
-                const dayEngineOffEvents = filteredEngineOffEvents.filter(e => 
-                  e && e.timestamp && new Date(e.timestamp).toISOString().split('T')[0] === dateStr
-                )
+                const timeStr = hoveredBar.date
+                const timeCollisionEvents = filteredCollisionEvents.filter(e => {
+                  if (!e || !e.timestamp) return false
+                  const eventTime = new Date(e.timestamp)
+                  if (isSameDay) {
+                    return eventTime.toISOString().slice(0, 16) === timeStr
+                  } else {
+                    return eventTime.toISOString().split('T')[0] === timeStr
+                  }
+                })
+                const timeEngineOffEvents = filteredEngineOffEvents.filter(e => {
+                  if (!e || !e.timestamp) return false
+                  const eventTime = new Date(e.timestamp)
+                  if (isSameDay) {
+                    return eventTime.toISOString().slice(0, 16) === timeStr
+                  } else {
+                    return eventTime.toISOString().split('T')[0] === timeStr
+                  }
+                })
                 
-                if (hoveredBar.type === 'collision' && dayCollisionEvents.length > 0) {
+                if (hoveredBar.type === 'collision' && timeCollisionEvents.length > 0) {
                   return (
                     <div>
                       <div style={{ color: '#ef4444', fontWeight: 600, marginBottom: 8 }}>
-                        🚗 충돌 이벤트 ({dayCollisionEvents.length}개)
+                        🚗 충돌 이벤트 ({timeCollisionEvents.length}개)
                       </div>
-                      {dayCollisionEvents.map((event, idx) => (
-                        <div key={idx} style={{ color: '#d1d5db', fontSize: 12, marginBottom: 4 }}>
-                          • {new Date(event.timestamp).toLocaleTimeString('ko-KR')} - 손상도: {event.damage}/5
-                        </div>
-                      ))}
+                      {timeCollisionEvents.map((event, idx) => {
+                        // UTC 시간을 한국 시간(UTC+9)으로 변환
+                        const utcDate = new Date(event.timestamp)
+                        const koreanTime = new Date(utcDate.getTime() + (9 * 60 * 60 * 1000))
+                        return (
+                          <div key={idx} style={{ color: '#d1d5db', fontSize: 12, marginBottom: 4 }}>
+                            • {koreanTime.toLocaleTimeString('ko-KR')} - 손상도: {event.damage}/5
+                          </div>
+                        )
+                      })}
                     </div>
                   )
-                } else if (hoveredBar.type === 'engineOff' && dayEngineOffEvents.length > 0) {
+                } else if (hoveredBar.type === 'engineOff' && timeEngineOffEvents.length > 0) {
                   return (
                     <div>
                       <div style={{ color: '#f59e0b', fontWeight: 600, marginBottom: 8 }}>
-                        🔧 엔진 오프 이벤트 ({dayEngineOffEvents.length}개)
+                        🔧 엔진 오프 이벤트 ({timeEngineOffEvents.length}개)
                       </div>
-                      {dayEngineOffEvents.map((event, idx) => (
-                        <div key={idx} style={{ color: '#d1d5db', fontSize: 12, marginBottom: 4 }}>
-                          • {new Date(event.timestamp).toLocaleTimeString('ko-KR')} - 기어: {event.gear_status}, 자이로: {event.gyro}°, 방향: {event.side}
-                        </div>
-                      ))}
+                      {timeEngineOffEvents.map((event, idx) => {
+                        // UTC 시간을 한국 시간(UTC+9)으로 변환
+                        const utcDate = new Date(event.timestamp)
+                        const koreanTime = new Date(utcDate.getTime() + (9 * 60 * 60 * 1000))
+                        return (
+                          <div key={idx} style={{ color: '#d1d5db', fontSize: 12, marginBottom: 4 }}>
+                            • {koreanTime.toLocaleTimeString('ko-KR')} - 기어: {event.gear_status}, 자이로: {event.gyro}°, 방향: {event.side}
+                          </div>
+                        )
+                      })}
                     </div>
                   )
                 }
@@ -787,8 +875,11 @@ function EventTimeline({
           {[...filteredCollisionEvents.filter(e => e && e.timestamp).map(e => ({ ...e, type: 'collision' as const })), ...filteredEngineOffEvents.filter(e => e && e.timestamp).map(e => ({ ...e, type: 'engineOff' as const }))]
             .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
             .map((event, index) => {
-              const eventDate = new Date(event.timestamp).toISOString().split('T')[0]
-              const isSelected = selectedBar?.date === eventDate && selectedBar?.type === event.type
+              const eventTime = new Date(event.timestamp)
+              const eventTimeStr = isSameDay ? 
+                eventTime.toISOString().slice(0, 16) : // YYYY-MM-DDTHH:MM 형식
+                eventTime.toISOString().split('T')[0]  // YYYY-MM-DD 형식
+              const isSelected = selectedBar?.date === eventTimeStr && selectedBar?.type === event.type
               
               return (
             <div key={`event-${index}`} style={{ 
@@ -821,10 +912,10 @@ function EventTimeline({
             }}
             onClick={(e) => {
               e.stopPropagation()
-              if (selectedBar?.date === eventDate && selectedBar?.type === event.type) {
+              if (selectedBar?.date === eventTimeStr && selectedBar?.type === event.type) {
                 setSelectedBar(null) // 이미 선택된 이벤트면 해제
               } else {
-                setSelectedBar({ date: eventDate, type: event.type })
+                setSelectedBar({ date: eventTimeStr, type: event.type })
               }
             }}
             >
@@ -846,7 +937,12 @@ function EventTimeline({
                   padding: '2px 8px',
                   borderRadius: 4
                 }}>
-                  {new Date(event.timestamp).toLocaleString('ko-KR')}
+                  {(() => {
+                    // UTC 시간을 한국 시간(UTC+9)으로 변환
+                    const utcDate = new Date(event.timestamp)
+                    const koreanTime = new Date(utcDate.getTime() + (9 * 60 * 60 * 1000))
+                    return koreanTime.toLocaleString('ko-KR')
+                  })()}
                 </span>
               </div>
               {event.type === 'collision' ? (
@@ -880,13 +976,18 @@ function TelemetryChart({
   vehicleId: string
 }) {
   // 데이터 다운샘플링 (성능 최적화 - 3600개 -> 60개로 축소)
-  const downsampledData = telemetryData.filter((_, index) => index % 60 === 0).map(d => ({
-    time: new Date(d.timestamp).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }),
-    speed: Math.round(d.vehicle_speed),
-    rpm: Math.round(d.engine_rpm / 100), // 100으로 나눠서 스케일 조정
-    throttle: Math.round(d.throttle_position),
-    timestamp: d.timestamp
-  }))
+  const downsampledData = telemetryData.filter((_, index) => index % 60 === 0).map(d => {
+    // UTC 시간을 한국 시간(UTC+9)으로 변환
+    const utcDate = new Date(d.timestamp)
+    const koreanTime = new Date(utcDate.getTime() + (9 * 60 * 60 * 1000))
+    return {
+      time: koreanTime.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }),
+      speed: Math.round(d.vehicle_speed),
+      rpm: Math.round(d.engine_rpm / 100), // 100으로 나눠서 스케일 조정
+      throttle: Math.round(d.throttle_position),
+      timestamp: d.timestamp
+    }
+  })
 
   // 이벤트 시간대 찾기 (텔레메트리 시간 범위 내)
   const telemetryStart = new Date(telemetryData[0]?.timestamp || '')
@@ -952,20 +1053,25 @@ function TelemetryChart({
               name="속도"
             />
             {/* 이벤트 마커 */}
-            {eventsInRange.map((event, idx) => (
-              <ReferenceLine
-                key={idx}
-                x={new Date(event.timestamp).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
-                stroke={event.type === 'collision' ? '#ef4444' : '#f59e0b'}
-                strokeWidth={2}
-                strokeDasharray="3 3"
-                label={{ 
-                  value: event.type === 'collision' ? '🚨' : '🔧',
-                  position: 'top',
-                  fill: event.type === 'collision' ? '#ef4444' : '#f59e0b'
-                }}
-              />
-            ))}
+            {eventsInRange.map((event, idx) => {
+              // UTC 시간을 한국 시간(UTC+9)으로 변환
+              const utcDate = new Date(event.timestamp)
+              const koreanTime = new Date(utcDate.getTime() + (9 * 60 * 60 * 1000))
+              return (
+                <ReferenceLine
+                  key={idx}
+                  x={koreanTime.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
+                  stroke={event.type === 'collision' ? '#ef4444' : '#f59e0b'}
+                  strokeWidth={2}
+                  strokeDasharray="3 3"
+                  label={{ 
+                    value: event.type === 'collision' ? '🚨' : '🔧',
+                    position: 'top',
+                    fill: event.type === 'collision' ? '#ef4444' : '#f59e0b'
+                  }}
+                />
+              )
+            })}
           </LineChart>
         </ResponsiveContainer>
       </div>
@@ -1074,21 +1180,26 @@ function TelemetryChart({
             fontWeight: 600, 
             marginBottom: 12 
           }}>
-            📌 이벤트 요약 (01:54-02:54 UTC)
+            📌 이벤트 요약 (최근 1시간)
           </h5>
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-            {eventsInRange.map((event, idx) => (
-              <div key={idx} style={{ 
-                padding: '8px 12px', 
-                backgroundColor: event.type === 'collision' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(245, 158, 11, 0.1)',
-                border: `1px solid ${event.type === 'collision' ? '#ef4444' : '#f59e0b'}`,
-                borderRadius: 6,
-                fontSize: 12,
-                color: event.type === 'collision' ? '#ef4444' : '#f59e0b'
-              }}>
-                {event.type === 'collision' ? '🚨 충돌' : '🔧 엔진 오프'} - {new Date(event.timestamp).toLocaleTimeString('ko-KR')}
-              </div>
-            ))}
+            {eventsInRange.map((event, idx) => {
+              // UTC 시간을 한국 시간(UTC+9)으로 변환
+              const utcDate = new Date(event.timestamp)
+              const koreanTime = new Date(utcDate.getTime() + (9 * 60 * 60 * 1000))
+              return (
+                <div key={idx} style={{ 
+                  padding: '8px 12px', 
+                  backgroundColor: event.type === 'collision' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(245, 158, 11, 0.1)',
+                  border: `1px solid ${event.type === 'collision' ? '#ef4444' : '#f59e0b'}`,
+                  borderRadius: 6,
+                  fontSize: 12,
+                  color: event.type === 'collision' ? '#ef4444' : '#f59e0b'
+                }}>
+                  {event.type === 'collision' ? '🚨 충돌' : '🔧 엔진 오프'} - {koreanTime.toLocaleTimeString('ko-KR')}
+                </div>
+              )
+            })}
           </div>
         </div>
       )}
