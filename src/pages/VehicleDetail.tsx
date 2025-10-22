@@ -421,8 +421,11 @@ function EventTimeline({
 
   // 차트 설정 (분 단위 데이터에 맞게 조정)
   const chartHeight = 320
-  const chartWidth = Math.max(1200, totalMinutes * 8) // 분 단위로 조정 (8px per minute)
-  const margin = { top: 30, right: 40, bottom: 60, left: 80 }
+  // 분 단위 데이터의 경우 최대 너비 제한 및 라벨 간격 조정
+  const maxChartWidth = 2000
+  const minBarWidth = 4 // 최소 막대 너비
+  const chartWidth = Math.min(maxChartWidth, Math.max(1200, totalMinutes * minBarWidth))
+  const margin = { top: 30, right: 40, bottom: 80, left: 80 } // bottom margin 증가
   const maxEvents = Math.max(
     ...Object.values(eventsByTime).map(d => d.collision + d.engineOff),
     1
@@ -431,7 +434,10 @@ function EventTimeline({
   // 스케일 함수
   const xScale = (timeIndex: number) => margin.left + (timeIndex * (chartWidth - margin.left - margin.right) / (totalMinutes - 1))
   const yScale = (count: number) => chartHeight - margin.bottom - (count * (chartHeight - margin.top - margin.bottom) / maxEvents)
-  const barWidth = (chartWidth - margin.left - margin.right) / totalMinutes * 0.6
+  const barWidth = Math.max(minBarWidth, (chartWidth - margin.left - margin.right) / totalMinutes * 0.8)
+  
+  // 라벨 표시 간격 계산 (너무 많은 라벨 방지)
+  const labelInterval = Math.max(1, Math.ceil(totalMinutes / 20)) // 최대 20개 라벨만 표시
 
   return (
     <div style={{ 
@@ -554,7 +560,8 @@ function EventTimeline({
         backgroundColor: '#111827',
         padding: 20,
         overflow: 'auto',
-        position: 'relative'
+        position: 'relative',
+        maxHeight: '500px' // 최대 높이 제한으로 스크롤 가능하게
       }}>
         <svg width={chartWidth} height={chartHeight} style={{ minWidth: '100%' }}>
           {/* 그리드 배경 */}
@@ -747,31 +754,35 @@ function EventTimeline({
                   />
                 )}
                 
-                {/* 날짜/시간 라벨 */}
-                <text 
-                  x={xScale(i)} 
-                  y={chartHeight - margin.bottom + 20} 
-                  fontSize="11" 
-                  fill="#9ca3af" 
-                  textAnchor="middle"
-                >
-                  {isSameDay ? 
-                    currentTime.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }) :
-                    currentTime.getDate()
-                  }
-                </text>
-                <text 
-                  x={xScale(i)} 
-                  y={chartHeight - margin.bottom + 35} 
-                  fontSize="10" 
-                  fill="#6b7280" 
-                  textAnchor="middle"
-                >
-                  {isSameDay ? 
-                    currentTime.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' }) :
-                    currentTime.toLocaleDateString('ko-KR', { month: 'short' })
-                  }
-                </text>
+                {/* 날짜/시간 라벨 - 간격 조정으로 가독성 개선 */}
+                {i % labelInterval === 0 && (
+                  <>
+                    <text 
+                      x={xScale(i)} 
+                      y={chartHeight - margin.bottom + 20} 
+                      fontSize="10" 
+                      fill="#9ca3af" 
+                      textAnchor="middle"
+                    >
+                      {isSameDay ? 
+                        currentTime.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }) :
+                        currentTime.getDate()
+                      }
+                    </text>
+                    <text 
+                      x={xScale(i)} 
+                      y={chartHeight - margin.bottom + 35} 
+                      fontSize="9" 
+                      fill="#6b7280" 
+                      textAnchor="middle"
+                    >
+                      {isSameDay ? 
+                        currentTime.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' }) :
+                        currentTime.toLocaleDateString('ko-KR', { month: 'short' })
+                      }
+                    </text>
+                  </>
+                )}
               </g>
             )
           })}
