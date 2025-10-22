@@ -986,6 +986,8 @@ function TelemetryChart({
   eventData: EventData | null
   vehicleId: string
 }) {
+  // 탭 상태 관리
+  const [activeTab, setActiveTab] = useState<'speed' | 'rpm' | 'throttle'>('speed')
   // 데이터 다운샘플링 (성능 최적화 - 3600개 -> 60개로 축소)
   const downsampledData = telemetryData.filter((_, index) => index % 60 === 0).map(d => {
     // UTC 시간을 한국 시간(UTC+9)으로 변환
@@ -1023,158 +1025,259 @@ function TelemetryChart({
       backgroundColor: '#1f2937',
       boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
     }}>
-      {/* 속도 그래프 */}
-      <div style={{ marginBottom: 32 }}>
-        <h4 style={{ 
-          color: '#f9fafb', 
-          fontSize: 16, 
-          fontWeight: 600, 
-          marginBottom: 16 
-        }}>
-          🚗 차량 속도 (km/h)
-        </h4>
-        <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={downsampledData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-            <XAxis 
-              dataKey="time" 
-              stroke="#9ca3af"
-              tick={{ fill: '#9ca3af', fontSize: 12 }}
-            />
-            <YAxis 
-              stroke="#9ca3af"
-              tick={{ fill: '#9ca3af', fontSize: 12 }}
-              label={{ value: 'km/h', angle: -90, position: 'insideLeft', fill: '#9ca3af' }}
-            />
-            <Tooltip 
-              contentStyle={{ 
-                backgroundColor: '#1f2937', 
-                border: '1px solid #374151',
-                borderRadius: 8,
-                color: '#f9fafb'
-              }}
-            />
-            <Legend wrapperStyle={{ color: '#9ca3af' }} />
-            <Line 
-              type="monotone" 
-              dataKey="speed" 
-              stroke="#3b82f6" 
-              strokeWidth={2}
-              dot={false}
-              name="속도"
-            />
-            {/* 이벤트 마커 */}
-            {eventsInRange.map((event, idx) => {
-              // UTC 시간을 한국 시간(UTC+9)으로 변환
-              const utcDate = new Date(event.timestamp)
-              const koreanTime = new Date(utcDate.getTime() + (9 * 60 * 60 * 1000))
-              return (
-                <ReferenceLine
-                  key={idx}
-                  x={koreanTime.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
-                  stroke={event.type === 'collision' ? '#ef4444' : '#f59e0b'}
-                  strokeWidth={2}
-                  strokeDasharray="3 3"
-                  label={{ 
-                    value: event.type === 'collision' ? '🚨' : '🔧',
-                    position: 'top',
-                    fill: event.type === 'collision' ? '#ef4444' : '#f59e0b'
-                  }}
-                />
-              )
-            })}
-          </LineChart>
-        </ResponsiveContainer>
+      {/* 탭 메뉴 */}
+      <div style={{ 
+        display: 'flex', 
+        gap: 8, 
+        marginBottom: 24,
+        borderBottom: '1px solid #374151',
+        paddingBottom: 16
+      }}>
+        <button
+          onClick={() => setActiveTab('speed')}
+          style={{
+            padding: '12px 20px',
+            backgroundColor: activeTab === 'speed' ? '#3b82f6' : '#374151',
+            border: 'none',
+            borderRadius: 8,
+            color: '#ffffff',
+            fontSize: 14,
+            fontWeight: 600,
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8
+          }}
+          onMouseEnter={(e) => {
+            if (activeTab !== 'speed') {
+              e.currentTarget.style.backgroundColor = '#4b5563'
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (activeTab !== 'speed') {
+              e.currentTarget.style.backgroundColor = '#374151'
+            }
+          }}
+        >
+          🚗 차량 속도
+        </button>
+        <button
+          onClick={() => setActiveTab('rpm')}
+          style={{
+            padding: '12px 20px',
+            backgroundColor: activeTab === 'rpm' ? '#10b981' : '#374151',
+            border: 'none',
+            borderRadius: 8,
+            color: '#ffffff',
+            fontSize: 14,
+            fontWeight: 600,
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8
+          }}
+          onMouseEnter={(e) => {
+            if (activeTab !== 'rpm') {
+              e.currentTarget.style.backgroundColor = '#4b5563'
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (activeTab !== 'rpm') {
+              e.currentTarget.style.backgroundColor = '#374151'
+            }
+          }}
+        >
+          ⚙️ 엔진 RPM
+        </button>
+        <button
+          onClick={() => setActiveTab('throttle')}
+          style={{
+            padding: '12px 20px',
+            backgroundColor: activeTab === 'throttle' ? '#f59e0b' : '#374151',
+            border: 'none',
+            borderRadius: 8,
+            color: '#ffffff',
+            fontSize: 14,
+            fontWeight: 600,
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8
+          }}
+          onMouseEnter={(e) => {
+            if (activeTab !== 'throttle') {
+              e.currentTarget.style.backgroundColor = '#4b5563'
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (activeTab !== 'throttle') {
+              e.currentTarget.style.backgroundColor = '#374151'
+            }
+          }}
+        >
+          🎛️ 스로틀 위치
+        </button>
       </div>
 
-      {/* RPM 그래프 */}
-      <div style={{ marginBottom: 32 }}>
-        <h4 style={{ 
-          color: '#f9fafb', 
-          fontSize: 16, 
-          fontWeight: 600, 
-          marginBottom: 16 
-        }}>
-          ⚙️ 엔진 RPM (×100)
-        </h4>
-        <ResponsiveContainer width="100%" height={250}>
-          <LineChart data={downsampledData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-            <XAxis 
-              dataKey="time" 
-              stroke="#9ca3af"
-              tick={{ fill: '#9ca3af', fontSize: 12 }}
-            />
-            <YAxis 
-              stroke="#9ca3af"
-              tick={{ fill: '#9ca3af', fontSize: 12 }}
-              label={{ value: 'RPM ×100', angle: -90, position: 'insideLeft', fill: '#9ca3af' }}
-            />
-            <Tooltip 
-              contentStyle={{ 
-                backgroundColor: '#1f2937', 
-                border: '1px solid #374151',
-                borderRadius: 8,
-                color: '#f9fafb'
-              }}
-            />
-            <Legend wrapperStyle={{ color: '#9ca3af' }} />
-            <Line 
-              type="monotone" 
-              dataKey="rpm" 
-              stroke="#10b981" 
-              strokeWidth={2}
-              dot={false}
-              name="RPM"
-            />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
+      {/* 탭 콘텐츠 */}
+      {activeTab === 'speed' && (
+        <div>
+          <h4 style={{ 
+            color: '#f9fafb', 
+            fontSize: 16, 
+            fontWeight: 600, 
+            marginBottom: 16 
+          }}>
+            🚗 차량 속도 (km/h)
+          </h4>
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={downsampledData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+              <XAxis 
+                dataKey="time" 
+                stroke="#9ca3af"
+                tick={{ fill: '#9ca3af', fontSize: 12 }}
+              />
+              <YAxis 
+                stroke="#9ca3af"
+                tick={{ fill: '#9ca3af', fontSize: 12 }}
+                label={{ value: 'km/h', angle: -90, position: 'insideLeft', fill: '#9ca3af' }}
+              />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: '#1f2937', 
+                  border: '1px solid #374151',
+                  borderRadius: 8,
+                  color: '#f9fafb'
+                }}
+              />
+              <Legend wrapperStyle={{ color: '#9ca3af' }} />
+              <Line 
+                type="monotone" 
+                dataKey="speed" 
+                stroke="#3b82f6" 
+                strokeWidth={2}
+                dot={false}
+                name="속도"
+              />
+              {/* 이벤트 마커 */}
+              {eventsInRange.map((event, idx) => {
+                // UTC 시간을 한국 시간(UTC+9)으로 변환
+                const utcDate = new Date(event.timestamp)
+                const koreanTime = new Date(utcDate.getTime() + (9 * 60 * 60 * 1000))
+                return (
+                  <ReferenceLine
+                    key={idx}
+                    x={koreanTime.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
+                    stroke={event.type === 'collision' ? '#ef4444' : '#f59e0b'}
+                    strokeWidth={2}
+                    strokeDasharray="3 3"
+                    label={{ 
+                      value: event.type === 'collision' ? '🚨' : '🔧',
+                      position: 'top',
+                      fill: event.type === 'collision' ? '#ef4444' : '#f59e0b'
+                    }}
+                  />
+                )
+              })}
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      )}
 
-      {/* 스로틀 위치 그래프 */}
-      <div>
-        <h4 style={{ 
-          color: '#f9fafb', 
-          fontSize: 16, 
-          fontWeight: 600, 
-          marginBottom: 16 
-        }}>
-          🎛️ 스로틀 위치 (%)
-        </h4>
-        <ResponsiveContainer width="100%" height={250}>
-          <LineChart data={downsampledData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-            <XAxis 
-              dataKey="time" 
-              stroke="#9ca3af"
-              tick={{ fill: '#9ca3af', fontSize: 12 }}
-            />
-            <YAxis 
-              stroke="#9ca3af"
-              tick={{ fill: '#9ca3af', fontSize: 12 }}
-              domain={[0, 100]}
-              label={{ value: '%', angle: -90, position: 'insideLeft', fill: '#9ca3af' }}
-            />
-            <Tooltip 
-              contentStyle={{ 
-                backgroundColor: '#1f2937', 
-                border: '1px solid #374151',
-                borderRadius: 8,
-                color: '#f9fafb'
-              }}
-            />
-            <Legend wrapperStyle={{ color: '#9ca3af' }} />
-            <Line 
-              type="monotone" 
-              dataKey="throttle" 
-              stroke="#f59e0b" 
-              strokeWidth={2}
-              dot={false}
-              name="스로틀"
-            />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
+      {activeTab === 'rpm' && (
+        <div>
+          <h4 style={{ 
+            color: '#f9fafb', 
+            fontSize: 16, 
+            fontWeight: 600, 
+            marginBottom: 16 
+          }}>
+            ⚙️ 엔진 RPM (×100)
+          </h4>
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={downsampledData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+              <XAxis 
+                dataKey="time" 
+                stroke="#9ca3af"
+                tick={{ fill: '#9ca3af', fontSize: 12 }}
+              />
+              <YAxis 
+                stroke="#9ca3af"
+                tick={{ fill: '#9ca3af', fontSize: 12 }}
+                label={{ value: 'RPM ×100', angle: -90, position: 'insideLeft', fill: '#9ca3af' }}
+              />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: '#1f2937', 
+                  border: '1px solid #374151',
+                  borderRadius: 8,
+                  color: '#f9fafb'
+                }}
+              />
+              <Legend wrapperStyle={{ color: '#9ca3af' }} />
+              <Line 
+                type="monotone" 
+                dataKey="rpm" 
+                stroke="#10b981" 
+                strokeWidth={2}
+                dot={false}
+                name="RPM"
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      {activeTab === 'throttle' && (
+        <div>
+          <h4 style={{ 
+            color: '#f9fafb', 
+            fontSize: 16, 
+            fontWeight: 600, 
+            marginBottom: 16 
+          }}>
+            🎛️ 스로틀 위치 (%)
+          </h4>
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={downsampledData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+              <XAxis 
+                dataKey="time" 
+                stroke="#9ca3af"
+                tick={{ fill: '#9ca3af', fontSize: 12 }}
+              />
+              <YAxis 
+                stroke="#9ca3af"
+                tick={{ fill: '#9ca3af', fontSize: 12 }}
+                domain={[0, 100]}
+                label={{ value: '%', angle: -90, position: 'insideLeft', fill: '#9ca3af' }}
+              />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: '#1f2937', 
+                  border: '1px solid #374151',
+                  borderRadius: 8,
+                  color: '#f9fafb'
+                }}
+              />
+              <Legend wrapperStyle={{ color: '#9ca3af' }} />
+              <Line 
+                type="monotone" 
+                dataKey="throttle" 
+                stroke="#f59e0b" 
+                strokeWidth={2}
+                dot={false}
+                name="스로틀"
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      )}
 
       {/* 이벤트 요약 */}
       {eventsInRange.length > 0 && (
