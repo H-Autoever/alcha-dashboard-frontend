@@ -344,14 +344,14 @@ function EventTimeline({
   // 상태 관리
   const [hoveredBar, setHoveredBar] = useState<{date: string, type: 'collision' | 'engineOff' | 'suddenAccel' | 'warningLight'} | null>(null)
   const [selectedBar, setSelectedBar] = useState<{date: string, type: 'collision' | 'engineOff' | 'suddenAccel' | 'warningLight'} | null>(null)
-  const [eventFilter, setEventFilter] = useState<'all' | 'collision' | 'engineOff' | 'suddenAccel' | 'warningLight'>('all')
+  const [eventFilter, setEventFilter] = useState<'all' | 'collision' | 'engineOff'>('all')
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 })
 
-  // 필터링된 이벤트 데이터
+  // 필터링된 이벤트 데이터 (충돌/엔진 오프만 필터링, 급가속/경고등은 항상 표시)
   const filteredEngineOffEvents = (eventFilter === 'all' || eventFilter === 'engineOff') ? engineOffEvents : []
   const filteredCollisionEvents = (eventFilter === 'all' || eventFilter === 'collision') ? collisionEvents : []
-  const filteredSuddenAccelEvents = (eventFilter === 'all' || eventFilter === 'suddenAccel') ? suddenAccelerationEvents : []
-  const filteredWarningLightEvents = (eventFilter === 'all' || eventFilter === 'warningLight') ? warningLightEvents : []
+  const filteredSuddenAccelEvents = suddenAccelerationEvents // 항상 표시
+  const filteredWarningLightEvents = warningLightEvents // 항상 표시
   
   // 이벤트 데이터에서 날짜 범위 계산
   const allEventTimestamps = [
@@ -598,7 +598,7 @@ function EventTimeline({
             </span>
           </div>
           
-          {/* 이벤트 필터 버튼들 */}
+          {/* 이벤트 필터 버튼들 (충돌/엔진 오프만) */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 'auto' }}>
             <span style={{ color: '#9ca3af', fontSize: 14 }}>필터:</span>
             <button
@@ -629,7 +629,7 @@ function EventTimeline({
                 transition: 'background-color 0.2s'
               }}
             >
-              충돌
+              충돌만
             </button>
             <button
               onClick={() => setEventFilter('engineOff')}
@@ -644,37 +644,7 @@ function EventTimeline({
                 transition: 'background-color 0.2s'
               }}
             >
-              엔진 오프
-            </button>
-            <button
-              onClick={() => setEventFilter('suddenAccel')}
-              style={{
-                padding: '4px 12px',
-                backgroundColor: eventFilter === 'suddenAccel' ? '#8b5cf6' : '#374151',
-                border: 'none',
-                borderRadius: 6,
-                color: '#ffffff',
-                fontSize: 12,
-                cursor: 'pointer',
-                transition: 'background-color 0.2s'
-              }}
-            >
-              급가속
-            </button>
-            <button
-              onClick={() => setEventFilter('warningLight')}
-              style={{
-                padding: '4px 12px',
-                backgroundColor: eventFilter === 'warningLight' ? '#06b6d4' : '#374151',
-                border: 'none',
-                borderRadius: 6,
-                color: '#ffffff',
-                fontSize: 12,
-                cursor: 'pointer',
-                transition: 'background-color 0.2s'
-              }}
-            >
-              경고등
+              엔진 오프만
             </button>
           </div>
         </div>
@@ -766,14 +736,17 @@ function EventTimeline({
             
             if (isSameDay) {
               // 같은 날의 이벤트인 경우 분 단위로 처리
-              currentTime = new Date(startDate)
-              currentTime.setMinutes(startDate.getMinutes() + i)
-              timeStr = currentTime.toISOString().slice(0, 16) // YYYY-MM-DDTHH:MM 형식
+              // UTC 시간을 한국 시간으로 변환
+              const utcTime = new Date(startDate)
+              utcTime.setMinutes(startDate.getMinutes() + i)
+              currentTime = new Date(utcTime.getTime() + (9 * 60 * 60 * 1000))
+              timeStr = utcTime.toISOString().slice(0, 16) // YYYY-MM-DDTHH:MM 형식 (UTC 기준으로 이벤트 매칭용)
             } else {
               // 여러 날의 이벤트인 경우 날짜 단위로 처리
-              currentTime = new Date(startDate)
-              currentTime.setDate(startDate.getDate() + i)
-              timeStr = currentTime.toISOString().split('T')[0]
+              const utcTime = new Date(startDate)
+              utcTime.setDate(startDate.getDate() + i)
+              currentTime = new Date(utcTime.getTime() + (9 * 60 * 60 * 1000))
+              timeStr = utcTime.toISOString().split('T')[0]
             }
             
             const timeEvents = eventsByTime[timeStr] || { collision: 0, engineOff: 0, suddenAccel: 0, warningLight: 0 }
@@ -1547,6 +1520,34 @@ function TelemetryChart({
                 dot={false}
                 name="RPM"
               />
+              {/* 이벤트 마커 */}
+              {eventsInRange.map((event, idx) => {
+                // UTC 시간을 한국 시간(UTC+9)으로 변환
+                const utcDate = new Date(event.timestamp)
+                const koreanTime = new Date(utcDate.getTime() + (9 * 60 * 60 * 1000))
+                
+                // 이벤트 타입별 색상과 이모지
+                const eventStyle = 
+                  event.type === 'collision' ? { color: '#ef4444', emoji: '🚨' } :
+                  event.type === 'engineOff' ? { color: '#f59e0b', emoji: '🔧' } :
+                  event.type === 'suddenAccel' ? { color: '#8b5cf6', emoji: '⚡' } :
+                  { color: '#06b6d4', emoji: '⚠️' }
+                
+                return (
+                  <ReferenceLine
+                    key={idx}
+                    x={koreanTime.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
+                    stroke={eventStyle.color}
+                    strokeWidth={2}
+                    strokeDasharray="3 3"
+                    label={{ 
+                      value: eventStyle.emoji,
+                      position: 'top',
+                      fill: eventStyle.color
+                    }}
+                  />
+                )
+              })}
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -1593,6 +1594,34 @@ function TelemetryChart({
                 dot={false}
                 name="스로틀"
               />
+              {/* 이벤트 마커 */}
+              {eventsInRange.map((event, idx) => {
+                // UTC 시간을 한국 시간(UTC+9)으로 변환
+                const utcDate = new Date(event.timestamp)
+                const koreanTime = new Date(utcDate.getTime() + (9 * 60 * 60 * 1000))
+                
+                // 이벤트 타입별 색상과 이모지
+                const eventStyle = 
+                  event.type === 'collision' ? { color: '#ef4444', emoji: '🚨' } :
+                  event.type === 'engineOff' ? { color: '#f59e0b', emoji: '🔧' } :
+                  event.type === 'suddenAccel' ? { color: '#8b5cf6', emoji: '⚡' } :
+                  { color: '#06b6d4', emoji: '⚠️' }
+                
+                return (
+                  <ReferenceLine
+                    key={idx}
+                    x={koreanTime.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
+                    stroke={eventStyle.color}
+                    strokeWidth={2}
+                    strokeDasharray="3 3"
+                    label={{ 
+                      value: eventStyle.emoji,
+                      position: 'top',
+                      fill: eventStyle.color
+                    }}
+                  />
+                )
+              })}
             </LineChart>
           </ResponsiveContainer>
         </div>
