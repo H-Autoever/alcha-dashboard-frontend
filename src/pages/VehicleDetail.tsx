@@ -344,21 +344,21 @@ function EventTimeline({
   // 상태 관리
   const [hoveredBar, setHoveredBar] = useState<{date: string, type: 'collision' | 'engineOff' | 'suddenAccel' | 'warningLight'} | null>(null)
   const [selectedBar, setSelectedBar] = useState<{date: string, type: 'collision' | 'engineOff' | 'suddenAccel' | 'warningLight'} | null>(null)
-  const [eventFilter, setEventFilter] = useState<'all' | 'collision' | 'engineOff'>('all')
+  const [eventFilter, setEventFilter] = useState<'all' | 'collision' | 'engineOff' | 'suddenAccel' | 'warningLight'>('all')
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 })
 
-  // 필터링된 이벤트 데이터 (충돌/엔진 오프만 필터링, 급가속/경고등은 항상 표시)
+  // 필터링된 이벤트 데이터
   const filteredEngineOffEvents = (eventFilter === 'all' || eventFilter === 'engineOff') ? engineOffEvents : []
   const filteredCollisionEvents = (eventFilter === 'all' || eventFilter === 'collision') ? collisionEvents : []
-  const filteredSuddenAccelEvents = suddenAccelerationEvents // 항상 표시
-  const filteredWarningLightEvents = warningLightEvents // 항상 표시
+  const filteredSuddenAccelEvents = (eventFilter === 'all' || eventFilter === 'suddenAccel') ? suddenAccelerationEvents : []
+  const filteredWarningLightEvents = (eventFilter === 'all' || eventFilter === 'warningLight') ? warningLightEvents : []
   
-  // 이벤트 데이터에서 날짜 범위 계산
+  // 이벤트 데이터에서 날짜 범위 계산 (항상 전체 이벤트 기준)
   const allEventTimestamps = [
-    ...filteredCollisionEvents.map(e => e.timestamp),
-    ...filteredEngineOffEvents.map(e => e.timestamp),
-    ...filteredSuddenAccelEvents.map(e => e.timestamp),
-    ...filteredWarningLightEvents.map(e => e.timestamp)
+    ...collisionEvents.map(e => e.timestamp),
+    ...engineOffEvents.map(e => e.timestamp),
+    ...suddenAccelerationEvents.map(e => e.timestamp),
+    ...warningLightEvents.map(e => e.timestamp)
   ].filter(t => t).map(t => new Date(t)).sort((a, b) => a.getTime() - b.getTime())
   
   if (allEventTimestamps.length === 0) {
@@ -598,7 +598,7 @@ function EventTimeline({
             </span>
           </div>
           
-          {/* 이벤트 필터 버튼들 (충돌/엔진 오프만) */}
+          {/* 이벤트 필터 버튼들 */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 'auto' }}>
             <span style={{ color: '#9ca3af', fontSize: 14 }}>필터:</span>
             <button
@@ -629,7 +629,7 @@ function EventTimeline({
                 transition: 'background-color 0.2s'
               }}
             >
-              충돌만
+              충돌
             </button>
             <button
               onClick={() => setEventFilter('engineOff')}
@@ -644,7 +644,37 @@ function EventTimeline({
                 transition: 'background-color 0.2s'
               }}
             >
-              엔진 오프만
+              엔진 오프
+            </button>
+            <button
+              onClick={() => setEventFilter('suddenAccel')}
+              style={{
+                padding: '4px 12px',
+                backgroundColor: eventFilter === 'suddenAccel' ? '#8b5cf6' : '#374151',
+                border: 'none',
+                borderRadius: 6,
+                color: '#ffffff',
+                fontSize: 12,
+                cursor: 'pointer',
+                transition: 'background-color 0.2s'
+              }}
+            >
+              급가속
+            </button>
+            <button
+              onClick={() => setEventFilter('warningLight')}
+              style={{
+                padding: '4px 12px',
+                backgroundColor: eventFilter === 'warningLight' ? '#06b6d4' : '#374151',
+                border: 'none',
+                borderRadius: 6,
+                color: '#ffffff',
+                fontSize: 12,
+                cursor: 'pointer',
+                transition: 'background-color 0.2s'
+              }}
+            >
+              경고등
             </button>
           </div>
         </div>
