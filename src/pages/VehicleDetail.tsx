@@ -499,9 +499,15 @@ function EventTimeline({
   )
 
   // 스케일 함수
-  const xScale = (timeIndex: number) => margin.left + (timeIndex * (chartWidth - margin.left - margin.right) / (totalMinutes - 1))
+  const xScale = (timeIndex: number) => {
+    if (totalMinutes === 1) {
+      return margin.left + (chartWidth - margin.left - margin.right) / 2
+    }
+    return margin.left + (timeIndex * (chartWidth - margin.left - margin.right) / (totalMinutes - 1))
+  }
   const yScale = (count: number) => chartHeight - margin.bottom - (count * (chartHeight - margin.top - margin.bottom) / maxEvents)
   const barWidth = Math.max(minBarWidth, (chartWidth - margin.left - margin.right) / totalMinutes * 0.8)
+  const barPadding = barWidth * 0.05 // 막대 사이 여백
   
   // 라벨 표시 간격 계산 (너무 많은 라벨 방지)
   const labelInterval = Math.max(1, Math.ceil(totalMinutes / 20)) // 최대 20개 라벨만 표시
@@ -771,7 +777,16 @@ function EventTimeline({
             }
             
             const timeEvents = eventsByTime[timeStr] || { collision: 0, engineOff: 0, suddenAccel: 0, warningLight: 0 }
-            const x = xScale(i) - barWidth / 2
+            // 막대가 그래프 영역을 벗어나지 않도록 위치 계산
+            let x = xScale(i) - barWidth / 2
+            // 첫 번째 막대가 왼쪽 경계를 넘지 않도록
+            if (i === 0) {
+              x = Math.max(margin.left + barPadding, x)
+            }
+            // 마지막 막대가 오른쪽 경계를 넘지 않도록
+            if (i === totalMinutes - 1) {
+              x = Math.min(chartWidth - margin.right - barWidth - barPadding, x)
+            }
             
             // 해당 시간의 실제 이벤트들 찾기 (안전한 처리)
             const timeCollisionEvents = filteredCollisionEvents.filter(e => {
@@ -1302,7 +1317,15 @@ function TelemetryChart({
     ...eventData.engine_off_events.filter(e => {
       const eventTime = new Date(e.timestamp)
       return eventTime >= telemetryStart && eventTime <= telemetryEnd
-    }).map(e => ({ ...e, type: 'engineOff' as const }))
+    }).map(e => ({ ...e, type: 'engineOff' as const })),
+    ...eventData.sudden_acceleration_events.filter(e => {
+      const eventTime = new Date(e.timestamp)
+      return eventTime >= telemetryStart && eventTime <= telemetryEnd
+    }).map(e => ({ ...e, type: 'suddenAccel' as const })),
+    ...eventData.warning_light_events.filter(e => {
+      const eventTime = new Date(e.timestamp)
+      return eventTime >= telemetryStart && eventTime <= telemetryEnd
+    }).map(e => ({ ...e, type: 'warningLight' as const }))
   ] : []
 
   return (
@@ -1456,17 +1479,25 @@ function TelemetryChart({
                 // UTC 시간을 한국 시간(UTC+9)으로 변환
                 const utcDate = new Date(event.timestamp)
                 const koreanTime = new Date(utcDate.getTime() + (9 * 60 * 60 * 1000))
+                
+                // 이벤트 타입별 색상과 이모지
+                const eventStyle = 
+                  event.type === 'collision' ? { color: '#ef4444', emoji: '🚨' } :
+                  event.type === 'engineOff' ? { color: '#f59e0b', emoji: '🔧' } :
+                  event.type === 'suddenAccel' ? { color: '#8b5cf6', emoji: '⚡' } :
+                  { color: '#06b6d4', emoji: '⚠️' }
+                
                 return (
                   <ReferenceLine
                     key={idx}
                     x={koreanTime.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
-                    stroke={event.type === 'collision' ? '#ef4444' : '#f59e0b'}
+                    stroke={eventStyle.color}
                     strokeWidth={2}
                     strokeDasharray="3 3"
                     label={{ 
-                      value: event.type === 'collision' ? '🚨' : '🔧',
+                      value: eventStyle.emoji,
                       position: 'top',
-                      fill: event.type === 'collision' ? '#ef4444' : '#f59e0b'
+                      fill: eventStyle.color
                     }}
                   />
                 )
@@ -1589,16 +1620,27 @@ function TelemetryChart({
               // UTC 시간을 한국 시간(UTC+9)으로 변환
               const utcDate = new Date(event.timestamp)
               const koreanTime = new Date(utcDate.getTime() + (9 * 60 * 60 * 1000))
+              
+              // 이벤트 타입별 스타일
+              const eventStyle = 
+                event.type === 'collision' 
+                  ? { bg: 'rgba(239, 68, 68, 0.1)', border: '#ef4444', color: '#ef4444', label: '🚨 충돌' } :
+                event.type === 'engineOff'
+                  ? { bg: 'rgba(245, 158, 11, 0.1)', border: '#f59e0b', color: '#f59e0b', label: '🔧 엔진 오프' } :
+                event.type === 'suddenAccel'
+                  ? { bg: 'rgba(139, 92, 246, 0.1)', border: '#8b5cf6', color: '#8b5cf6', label: '⚡ 급가속' } :
+                  { bg: 'rgba(6, 182, 212, 0.1)', border: '#06b6d4', color: '#06b6d4', label: '⚠️ 경고등' }
+              
               return (
                 <div key={idx} style={{ 
                   padding: '8px 12px', 
-                  backgroundColor: event.type === 'collision' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(245, 158, 11, 0.1)',
-                  border: `1px solid ${event.type === 'collision' ? '#ef4444' : '#f59e0b'}`,
+                  backgroundColor: eventStyle.bg,
+                  border: `1px solid ${eventStyle.border}`,
                   borderRadius: 6,
                   fontSize: 12,
-                  color: event.type === 'collision' ? '#ef4444' : '#f59e0b'
+                  color: eventStyle.color
                 }}>
-                  {event.type === 'collision' ? '🚨 충돌' : '🔧 엔진 오프'} - {koreanTime.toLocaleTimeString('ko-KR')}
+                  {eventStyle.label} - {koreanTime.toLocaleTimeString('ko-KR')}
                 </div>
               )
             })}
