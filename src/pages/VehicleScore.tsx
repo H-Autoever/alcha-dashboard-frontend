@@ -269,7 +269,7 @@ export default function VehicleScorePage() {
           className={({ isActive }) => `tab ${isActive ? 'active' : ''}`}
           style={{ textDecoration: 'none', fontSize: '50px !important' }}
         >
-          차량 평가 점수
+          차량 상태 평가 
         </NavLink>
         <NavLink 
           to={`/vehicle/${vehicleId}/habitmonthly`} 
@@ -286,16 +286,16 @@ export default function VehicleScorePage() {
           display: 'flex', 
           justifyContent: 'space-between', 
           alignItems: 'center', 
-          marginBottom: 8 
+          marginBottom: 10
         }}>
-          <h3 style={{ margin: 0 }}>기본 정보</h3>
+          <h3 style={{ margin: '0 0 0 0', paddingTop: '20px' }}>기본 정보</h3>
         </div>
         
         <div style={{ 
           display: 'grid', 
           gridTemplateColumns: '1fr 1fr', 
           gap: '16px',
-          marginBottom: 8
+          marginBottom: 10
         }}>
           {/* 기본 정보 (왼쪽) */}
           <div style={{ 
@@ -326,7 +326,7 @@ export default function VehicleScorePage() {
             <h3 style={{ 
               margin: 0, 
               position: 'absolute', 
-              top: '-32px', 
+              top: '-37px', 
               left: '0px',
               fontSize: '19px',
               color: '#e5e7eb'
@@ -366,7 +366,7 @@ export default function VehicleScorePage() {
         </div>
         
         <div style={{ marginBottom: 8 }}>
-          <label style={{ color: '#e5e7eb', marginRight: 8, fontWeight: 'bold' }}>날짜 검색:</label>
+          <label style={{ color: '#e5e7eb', marginRight: 8, fontWeight: 'bold', fontSize: '18px' }}>날짜 검색:</label>
           <input
             type="date"
             value={selectedDate}

@@ -141,7 +141,7 @@ export default function VehicleDetailPage() {
           className={({ isActive }) => `tab ${isActive ? 'active' : ''}`}
           style={{ textDecoration: 'none', fontSize: '50px !important' }}
         >
-          차량 평가 점수
+          차량 상태 평가
         </NavLink>
         <NavLink 
           to={`/vehicle/${vehicleId}/habitmonthly`} 
@@ -158,9 +158,9 @@ export default function VehicleDetailPage() {
           display: 'flex', 
           justifyContent: 'space-between', 
           alignItems: 'center', 
-          marginBottom: 16 
+          marginBottom: 16
         }}>
-          <h3 style={{ margin: 0 }}>기본 정보</h3>
+          <h3 style={{ margin: '0 0 0 0', paddingTop: '20px' }}>기본 정보</h3>
         </div>
         
         <div style={{ marginBottom: 24 }}>
@@ -172,7 +172,8 @@ export default function VehicleDetailPage() {
             marginBottom: 24,
             display: 'flex',
             alignItems: 'center',
-            gap: '16px'
+            gap: '16px',
+            height:'12px'
           }}>
             <div style={{ color: '#e5e7eb', fontSize: '15px' }}>
               <span style={{ color: '#94a3b8', fontWeight: 'bold' }}>차량 ID:</span> <span style={{ color: '#9ca3af' }}>{detail.vehicle_id}</span>
