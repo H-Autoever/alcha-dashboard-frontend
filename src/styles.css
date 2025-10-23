@@ -91,7 +91,7 @@ body {
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  margin: 16px 0 24px;
+  margin: 16px 0 8px;
   border-bottom: 1px solid var(--border);
 }
 
@@ -101,7 +101,7 @@ body {
   background: transparent;
   border: none;
   color: var(--muted);
-  font-size: 26px;
+  font-size: x;
   cursor: pointer;
   border-radius: 10px 10px 0 0;
   transition: background 0.2s ease, color 0.2s ease;
