@@ -634,7 +634,7 @@ export default function VehicleHabitMonthlyPage() {
                       lineHeight: '1.5',
                       flex: 1
                     }}>
-                      <strong>{item.label}</strong>{item.label.includes('야간', '연비') ? '이' : '가'} 저번달 <strong>{item.previous.toFixed(2)}{item.unit}</strong>보다 <strong style={{ color: changeColor }}>{Math.abs(change).toFixed(2)}{item.label.includes('야간') ? '%' : item.unit} {changeText}</strong>하여 <strong style={{ color: changeColor }}>{improvementText}</strong>되었습니다.
+                      <strong>{item.label}</strong>{item.label.includes('야간') || item.label.includes('연비') ? '이' : '가'} 저번달 <strong>{item.previous.toFixed(2)}{item.unit}</strong>보다 <strong style={{ color: changeColor }}>{Math.abs(change).toFixed(2)}{item.label.includes('야간') ? '%' : item.unit} {changeText}</strong>하여 <strong style={{ color: changeColor }}>{improvementText}</strong>되었습니다.
                     </div>
                   </div>
                 )

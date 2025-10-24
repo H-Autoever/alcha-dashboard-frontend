@@ -745,7 +745,7 @@ export default function VehicleScorePage() {
                         contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1f2937', borderRadius: 8, color: '#e2e8f0' }}
                         labelStyle={{ color: '#cbd5f5', fontSize: 13 }}
                         itemStyle={{ color: '#f8fafc' }}
-                        formatter={(value: number | null) => [value == null ? '데이터 없음' : `${value}점`, '점수']}
+                        formatter={(value: any) => [value == null ? '데이터 없음' : `${value}점`, '점수']}
                       />
                       <Bar dataKey="value" radius={[8, 8, 0, 0]} barSize={26}>
                         <LabelList
@@ -995,7 +995,7 @@ export default function VehicleScorePage() {
                           ? value
                           : parsed.toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' })
                       }}
-                      formatter={(value: number | null, name) => {
+                      formatter={(value: any, name) => {
                         const series = SCORE_HISTORY_SERIES.find((item) => item.key === name)
                         return [value == null ? '데이터 없음' : `${value}점`, series ? series.label : name]
                       }}
