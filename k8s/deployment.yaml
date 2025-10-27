@@ -27,7 +27,7 @@ spec:
       # 컨테이너 이름
       - name: alcha-dashboard-frontend  
         # ECR에 저장된 프론트엔드 이미지 
-        image: 577012215958.dkr.ecr.ap-northeast-2.amazonaws.com/alcha/dashboard-frontend:latest
+        image: 504554670497.dkr.ecr.ap-northeast-2.amazonaws.com/alcha/dashboard-frontend:latest
         ports:
         # 컨테이너 내부 포트 (프론트엔드 표준 포트)
         - containerPort: 80  
