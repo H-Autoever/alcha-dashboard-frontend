@@ -8,7 +8,7 @@ metadata:
   annotations:
     # 1. 업데이트할 이미지 목록과 alias (frontend) 정의
     # ECR 레지스트리 주소와 레포지토리 경로를 지정
-    argocd-image-updater.argoproj.io/image-list: frontend=577012215958.dkr.ecr.ap-northeast-2.amazonaws.com/alcha/dashboard-frontend
+    argocd-image-updater.argoproj.io/image-list: frontend=504554670497.dkr.ecr.ap-northeast-2.amazonaws.com/alcha/dashboard-frontend
 
     # 2. 가장 최근에 푸시된 태그를 사용하도록 설정
     argocd-image-updater.argoproj.io/frontend.update-strategy: newest-build
@@ -18,7 +18,7 @@ metadata:
 
     # 4. Kustomize 이미지 태그 업데이트 위치 지정
     # Kustomization 파일 내의 'image' 섹션을 업데이트하도록 지시
-    argocd-image-updater.argoproj.io/frontend.kustomize.image: 577012215958.dkr.ecr.ap-northeast-2.amazonaws.com/alcha/dashboard-frontend
+    argocd-image-updater.argoproj.io/frontend.kustomize.image: 504554670497.dkr.ecr.ap-northeast-2.amazonaws.com/alcha/dashboard-frontend
 
 spec:
   project: default
