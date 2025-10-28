@@ -10,4 +10,4 @@ metadata:
 data:
   # 프론트엔드에서 백엔드 API 서버에 접근하기 위한 URL
   # 백엔드 서비스 이름과 포트를 사용하여 클러스터 내부 통신
-  VITE_API_BASE_URL: "http://alcha-dashboard-backend-svc:8000"
+  VITE_API_BASE_URL: ""
