@@ -391,13 +391,18 @@ function EventTimeline({
   warningLightEvents: WarningLightEvent[]
 }) {
   // 상태 관리
-  const [hoveredBar, setHoveredBar] = useState<{date: string, type: 'collision' | 'engineOff' | 'suddenAccel' | 'warningLight'} | null>(null)
-  const [selectedBar, setSelectedBar] = useState<{date: string, type: 'collision' | 'engineOff' | 'suddenAccel' | 'warningLight'} | null>(null)
-  const [eventFilter, setEventFilter] = useState<'all' | 'collision' | 'engineOff' | 'suddenAccel' | 'warningLight'>('all')
+  const [hoveredBar, setHoveredBar] = useState<{date: string, type: 'collision' | 'engineOn' | 'engineOff' | 'suddenAccel' | 'warningLight'} | null>(null)
+  const [selectedBar, setSelectedBar] = useState<{date: string, type: 'collision' | 'engineOn' | 'engineOff' | 'suddenAccel' | 'warningLight'} | null>(null)
+  const [eventFilter, setEventFilter] = useState<'all' | 'collision' | 'engineOn' | 'engineOff' | 'suddenAccel' | 'warningLight'>('all')
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 })
 
+  // 엔진 이벤트 분리
+  const engineOnEvents = engineOffEvents.filter(e => e && e.ignition === true)
+  const engineOffOnlyEvents = engineOffEvents.filter(e => e && e.ignition === false)
+
   // 필터링된 이벤트 데이터
-  const filteredEngineOffEvents = (eventFilter === 'all' || eventFilter === 'engineOff') ? engineOffEvents : []
+  const filteredEngineOnEvents = (eventFilter === 'all' || eventFilter === 'engineOn') ? engineOnEvents : []
+  const filteredEngineOffEvents = (eventFilter === 'all' || eventFilter === 'engineOff') ? engineOffOnlyEvents : []
   const filteredCollisionEvents = (eventFilter === 'all' || eventFilter === 'collision') ? collisionEvents : []
   const filteredSuddenAccelEvents = (eventFilter === 'all' || eventFilter === 'suddenAccel') ? suddenAccelerationEvents : []
   const filteredWarningLightEvents = (eventFilter === 'all' || eventFilter === 'warningLight') ? warningLightEvents : []
@@ -434,7 +439,7 @@ function EventTimeline({
     Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1 // 일 단위
 
   // 분별/날짜별 이벤트 개수 계산
-  const eventsByTime: { [key: string]: { collision: number, engineOff: number, suddenAccel: number, warningLight: number } } = {}
+  const eventsByTime: { [key: string]: { collision: number, engineOn: number, engineOff: number, suddenAccel: number, warningLight: number } } = {}
   
   // 초기화
   if (isSameDay) {
@@ -443,7 +448,7 @@ function EventTimeline({
       const currentTime = new Date(startDate)
       currentTime.setMinutes(startDate.getMinutes() + i)
       const timeStr = currentTime.toISOString().slice(0, 16) // YYYY-MM-DDTHH:MM 형식
-      eventsByTime[timeStr] = { collision: 0, engineOff: 0, suddenAccel: 0, warningLight: 0 }
+      eventsByTime[timeStr] = { collision: 0, engineOn: 0, engineOff: 0, suddenAccel: 0, warningLight: 0 }
     }
   } else {
     // 여러 날의 이벤트인 경우 날짜 단위로 초기화
@@ -451,7 +456,7 @@ function EventTimeline({
       const currentDate = new Date(startDate)
       currentDate.setDate(startDate.getDate() + i)
       const dateStr = currentDate.toISOString().split('T')[0]
-      eventsByTime[dateStr] = { collision: 0, engineOff: 0, suddenAccel: 0, warningLight: 0 }
+      eventsByTime[dateStr] = { collision: 0, engineOn: 0, engineOff: 0, suddenAccel: 0, warningLight: 0 }
     }
   }
   
@@ -470,6 +475,24 @@ function EventTimeline({
         const date = eventTime.toISOString().split('T')[0]
         if (eventsByTime[date]) {
           eventsByTime[date].collision++
+        }
+      }
+    }
+  })
+  
+  // 엔진 온 이벤트 카운트 (안전한 처리)
+  filteredEngineOnEvents.forEach(event => {
+    if (event && event.timestamp) {
+      const eventTime = new Date(event.timestamp)
+      if (isSameDay) {
+        const timeStr = eventTime.toISOString().slice(0, 16)
+        if (eventsByTime[timeStr]) {
+          eventsByTime[timeStr].engineOn++
+        }
+      } else {
+        const date = eventTime.toISOString().split('T')[0]
+        if (eventsByTime[date]) {
+          eventsByTime[date].engineOn++
         }
       }
     }
@@ -543,7 +566,7 @@ function EventTimeline({
   const chartWidth = Math.min(maxChartWidth, Math.max(1200, totalMinutes * minBarWidth))
   const margin = { top: 30, right: 40, bottom: 80, left: 80 } // bottom margin 증가
   const maxEvents = Math.max(
-    ...Object.values(eventsByTime).map(d => d.collision + d.engineOff + d.suddenAccel + d.warningLight),
+    ...Object.values(eventsByTime).map(d => d.collision + d.engineOn + d.engineOff + d.suddenAccel + d.warningLight),
     1
   )
 
@@ -588,7 +611,7 @@ function EventTimeline({
             padding: '4px 8px', 
             borderRadius: 6 
           }}>
-            {collisionEvents.length + engineOffEvents.length + suddenAccelerationEvents.length + warningLightEvents.length}개 이벤트
+            {collisionEvents.length + engineOnEvents.length + engineOffOnlyEvents.length + suddenAccelerationEvents.length + warningLightEvents.length}개 이벤트
           </span>
         </h3>
         
@@ -614,12 +637,24 @@ function EventTimeline({
             <div style={{ 
               width: 16, 
               height: 16, 
+              backgroundColor: '#22c55e', 
+              borderRadius: 4,
+              boxShadow: '0 2px 4px rgba(34, 197, 94, 0.3)'
+            }}></div>
+            <span style={{ color: '#f9fafb', fontSize: 14, fontWeight: 500 }}>
+              엔진 온 ({engineOnEvents.length})
+            </span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ 
+              width: 16, 
+              height: 16, 
               backgroundColor: '#f59e0b', 
               borderRadius: 4,
               boxShadow: '0 2px 4px rgba(245, 158, 11, 0.3)'
             }}></div>
             <span style={{ color: '#f9fafb', fontSize: 14, fontWeight: 500 }}>
-              엔진 오프 ({engineOffEvents.length})
+              엔진 오프 ({engineOffOnlyEvents.length})
             </span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -680,6 +715,21 @@ function EventTimeline({
             >
               충돌
             </button>
+          <button
+            onClick={() => setEventFilter('engineOn')}
+            style={{
+              padding: '4px 12px',
+              backgroundColor: eventFilter === 'engineOn' ? '#22c55e' : '#374151',
+              border: 'none',
+              borderRadius: 6,
+              color: '#ffffff',
+              fontSize: 12,
+              cursor: 'pointer',
+              transition: 'background-color 0.2s'
+            }}
+          >
+            엔진 온
+          </button>
             <button
               onClick={() => setEventFilter('engineOff')}
               style={{
@@ -850,6 +900,15 @@ function EventTimeline({
                 return eventTime.toISOString().split('T')[0] === timeStr
               }
             })
+            const timeEngineOnEvents = filteredEngineOnEvents.filter(e => {
+              if (!e || !e.timestamp) return false
+              const eventTime = new Date(e.timestamp)
+              if (isSameDay) {
+                return eventTime.toISOString().slice(0, 16) === timeStr
+              } else {
+                return eventTime.toISOString().split('T')[0] === timeStr
+              }
+            })
             const timeEngineOffEvents = filteredEngineOffEvents.filter(e => {
               if (!e || !e.timestamp) return false
               const eventTime = new Date(e.timestamp)
@@ -885,7 +944,7 @@ function EventTimeline({
                   <rect
                     x={x}
                     y={yScale(timeEvents.collision)}
-                    width={barWidth / 4}
+                    width={barWidth / 5}
                     height={chartHeight - margin.bottom - yScale(timeEvents.collision)}
                     fill={selectedBar?.date === timeStr && selectedBar?.type === 'collision' ? '#dc2626' : '#ef4444'}
                     rx="2"
@@ -919,14 +978,54 @@ function EventTimeline({
                     }}
                   />
                 )}
-                
-                {/* 엔진 오프 이벤트 막대 */}
-                {timeEvents.engineOff > 0 && (
+
+                {/* 엔진 온 이벤트 막대 */}
+                {timeEngineOnEvents.length > 0 && (
                   <rect
-                    x={x + barWidth / 4}
-                    y={yScale(timeEvents.engineOff)}
-                    width={barWidth / 4}
-                    height={chartHeight - margin.bottom - yScale(timeEvents.engineOff)}
+                    x={x + (barWidth / 5)}
+                    y={yScale(timeEngineOnEvents.length)}
+                    width={barWidth / 5}
+                    height={chartHeight - margin.bottom - yScale(timeEngineOnEvents.length)}
+                    fill={selectedBar?.date === timeStr && selectedBar?.type === 'engineOn' ? '#16a34a' : '#22c55e'}
+                    rx="2"
+                    style={{ 
+                      cursor: 'pointer',
+                      filter: selectedBar?.date === timeStr && selectedBar?.type === 'engineOn' 
+                        ? 'drop-shadow(0 4px 12px rgba(34, 197, 94, 0.8))' 
+                        : 'drop-shadow(0 2px 4px rgba(34, 197, 94, 0.3))',
+                      transition: 'all 0.2s ease',
+                      stroke: selectedBar?.date === timeStr && selectedBar?.type === 'engineOn' ? '#ffffff' : 'none',
+                      strokeWidth: selectedBar?.date === timeStr && selectedBar?.type === 'engineOn' ? 2 : 0
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!(selectedBar?.date === timeStr && selectedBar?.type === 'engineOn')) {
+                        e.currentTarget.style.filter = 'drop-shadow(0 4px 8px rgba(34, 197, 94, 0.5))'
+                        e.currentTarget.style.fill = '#16a34a'
+                      }
+                      setHoveredBar({ date: timeStr, type: 'engineOn' })
+                      setTooltipPosition({ x: e.clientX, y: e.clientY })
+                    }}
+                    onMouseLeave={() => {
+                      setHoveredBar(null)
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      if (selectedBar?.date === timeStr && selectedBar?.type === 'engineOn') {
+                        setSelectedBar(null)
+                      } else {
+                        setSelectedBar({ date: timeStr, type: 'engineOn' })
+                      }
+                    }}
+                  />
+                )}
+
+                {/* 엔진 오프 이벤트 막대 */}
+                {timeEngineOffEvents.length > 0 && (
+                  <rect
+                    x={x + (barWidth * 2) / 5}
+                    y={yScale(timeEngineOffEvents.length)}
+                    width={barWidth / 5}
+                    height={chartHeight - margin.bottom - yScale(timeEngineOffEvents.length)}
                     fill={selectedBar?.date === timeStr && selectedBar?.type === 'engineOff' ? '#d97706' : '#f59e0b'}
                     rx="2"
                     style={{ 
@@ -959,13 +1058,13 @@ function EventTimeline({
                     }}
                   />
                 )}
-                
+
                 {/* 급가속 이벤트 막대 */}
                 {timeEvents.suddenAccel > 0 && (
                   <rect
-                    x={x + barWidth / 2}
+                    x={x + (barWidth * 3) / 5}
                     y={yScale(timeEvents.suddenAccel)}
-                    width={barWidth / 4}
+                    width={barWidth / 5}
                     height={chartHeight - margin.bottom - yScale(timeEvents.suddenAccel)}
                     fill={selectedBar?.date === timeStr && selectedBar?.type === 'suddenAccel' ? '#7c3aed' : '#8b5cf6'}
                     rx="2"
@@ -999,13 +1098,13 @@ function EventTimeline({
                     }}
                   />
                 )}
-                
+
                 {/* 경고등 이벤트 막대 */}
                 {timeEvents.warningLight > 0 && (
                   <rect
-                    x={x + (barWidth * 3) / 4}
+                    x={x + (barWidth * 4) / 5}
                     y={yScale(timeEvents.warningLight)}
-                    width={barWidth / 4}
+                    width={barWidth / 5}
                     height={chartHeight - margin.bottom - yScale(timeEvents.warningLight)}
                     fill={selectedBar?.date === timeStr && selectedBar?.type === 'warningLight' ? '#0891b2' : '#06b6d4'}
                     rx="2"
@@ -1103,6 +1202,15 @@ function EventTimeline({
                     return eventTime.toISOString().split('T')[0] === timeStr
                   }
                 })
+                const timeEngineOnEvents = filteredEngineOnEvents.filter(e => {
+                  if (!e || !e.timestamp) return false
+                  const eventTime = new Date(e.timestamp)
+                  if (isSameDay) {
+                    return eventTime.toISOString().slice(0, 16) === timeStr
+                  } else {
+                    return eventTime.toISOString().split('T')[0] === timeStr
+                  }
+                })
                 const timeEngineOffEvents = filteredEngineOffEvents.filter(e => {
                   if (!e || !e.timestamp) return false
                   const eventTime = new Date(e.timestamp)
@@ -1144,6 +1252,23 @@ function EventTimeline({
                         return (
                           <div key={idx} style={{ color: '#d1d5db', fontSize: 12, marginBottom: 4 }}>
                             • {koreanTime.toLocaleTimeString('ko-KR')} - 손상도: {event.damage}/5
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )
+                } else if (hoveredBar.type === 'engineOn' && timeEngineOnEvents.length > 0) {
+                  return (
+                    <div>
+                      <div style={{ color: '#22c55e', fontWeight: 600, marginBottom: 8 }}>
+                        🟢 엔진 온 이벤트 ({timeEngineOnEvents.length}개)
+                      </div>
+                      {timeEngineOnEvents.map((event: EngineOffEvent, idx: number) => {
+                        const utcDate = new Date(event.timestamp)
+                        const koreanTime = new Date(utcDate.getTime() + (9 * 60 * 60 * 1000))
+                        return (
+                          <div key={idx} style={{ color: '#d1d5db', fontSize: 12, marginBottom: 4 }}>
+                            • {koreanTime.toLocaleTimeString('ko-KR')} - 기어: {event.gear_status}, 자이로: {event.gyro}°, 방향: {event.side}
                           </div>
                         )
                       })}
@@ -1225,6 +1350,7 @@ function EventTimeline({
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {[
             ...filteredCollisionEvents.filter(e => e && e.timestamp).map(e => ({ ...e, type: 'collision' as const })), 
+            ...filteredEngineOnEvents.filter(e => e && e.timestamp).map(e => ({ ...e, type: 'engineOn' as const })),
             ...filteredEngineOffEvents.filter(e => e && e.timestamp).map(e => ({ ...e, type: 'engineOff' as const })),
             ...filteredSuddenAccelEvents.filter(e => e && e.timestamp).map(e => ({ ...e, type: 'suddenAccel' as const })),
             ...filteredWarningLightEvents.filter(e => e && e.timestamp).map(e => ({ ...e, type: 'warningLight' as const }))
@@ -1241,29 +1367,29 @@ function EventTimeline({
             <div key={`event-${index}`} style={{ 
               padding: 16, 
               backgroundColor: isSelected 
-                ? (event.type === 'collision' ? '#2d1b1b' : event.type === 'engineOff' ? '#2d2d1b' : event.type === 'suddenAccel' ? '#2d1b2d' : '#1b2d2d')
-                : (event.type === 'collision' ? '#1f1f23' : event.type === 'engineOff' ? '#1f1f1f' : event.type === 'suddenAccel' ? '#1f1f23' : '#1f2323'), 
+                ? (event.type === 'collision' ? '#2d1b1b' : event.type === 'engineOn' ? '#1b2d1f' : event.type === 'engineOff' ? '#2d2d1b' : event.type === 'suddenAccel' ? '#2d1b2d' : '#1b2d2d')
+                : (event.type === 'collision' ? '#1f1f23' : event.type === 'engineOn' ? '#13261a' : event.type === 'engineOff' ? '#1f1f1f' : event.type === 'suddenAccel' ? '#1f1f23' : '#1f2323'), 
               border: isSelected 
-                ? `2px solid ${event.type === 'collision' ? '#ef4444' : event.type === 'engineOff' ? '#f59e0b' : event.type === 'suddenAccel' ? '#8b5cf6' : '#06b6d4'}`
-                : `1px solid ${event.type === 'collision' ? '#374151' : event.type === 'engineOff' ? '#4b5563' : event.type === 'suddenAccel' ? '#374151' : '#4b5563'}`,
+                ? `2px solid ${event.type === 'collision' ? '#ef4444' : event.type === 'engineOn' ? '#22c55e' : event.type === 'engineOff' ? '#f59e0b' : event.type === 'suddenAccel' ? '#8b5cf6' : '#06b6d4'}`
+                : `1px solid ${event.type === 'collision' ? '#374151' : event.type === 'engineOn' ? '#14532d' : event.type === 'engineOff' ? '#4b5563' : event.type === 'suddenAccel' ? '#374151' : '#4b5563'}`,
               borderRadius: 8,
               fontSize: 14,
               transition: 'all 0.2s ease',
               cursor: 'pointer',
               boxShadow: isSelected 
-                ? `0 0 20px ${event.type === 'collision' ? 'rgba(239, 68, 68, 0.3)' : event.type === 'engineOff' ? 'rgba(245, 158, 11, 0.3)' : event.type === 'suddenAccel' ? 'rgba(139, 92, 246, 0.3)' : 'rgba(6, 182, 212, 0.3)'}`
+                ? `0 0 20px ${event.type === 'collision' ? 'rgba(239, 68, 68, 0.3)' : event.type === 'engineOn' ? 'rgba(34, 197, 94, 0.3)' : event.type === 'engineOff' ? 'rgba(245, 158, 11, 0.3)' : event.type === 'suddenAccel' ? 'rgba(139, 92, 246, 0.3)' : 'rgba(6, 182, 212, 0.3)'}`
                 : 'none'
             }}
             onMouseEnter={(e) => {
               if (!isSelected) {
-                e.currentTarget.style.backgroundColor = event.type === 'collision' ? '#2d1b1b' : event.type === 'engineOff' ? '#2d2d1b' : event.type === 'suddenAccel' ? '#2d1b2d' : '#1b2d2d'
-                e.currentTarget.style.borderColor = event.type === 'collision' ? '#ef4444' : event.type === 'engineOff' ? '#f59e0b' : event.type === 'suddenAccel' ? '#8b5cf6' : '#06b6d4'
+                e.currentTarget.style.backgroundColor = event.type === 'collision' ? '#2d1b1b' : event.type === 'engineOn' ? '#1b2d1f' : event.type === 'engineOff' ? '#2d2d1b' : event.type === 'suddenAccel' ? '#2d1b2d' : '#1b2d2d'
+                e.currentTarget.style.borderColor = event.type === 'collision' ? '#ef4444' : event.type === 'engineOn' ? '#22c55e' : event.type === 'engineOff' ? '#f59e0b' : event.type === 'suddenAccel' ? '#8b5cf6' : '#06b6d4'
               }
             }}
             onMouseLeave={(e) => {
               if (!isSelected) {
-                e.currentTarget.style.backgroundColor = event.type === 'collision' ? '#1f1f23' : event.type === 'engineOff' ? '#1f1f1f' : event.type === 'suddenAccel' ? '#1f1f23' : '#1f2323'
-                e.currentTarget.style.borderColor = event.type === 'collision' ? '#374151' : event.type === 'engineOff' ? '#4b5563' : event.type === 'suddenAccel' ? '#374151' : '#4b5563'
+                e.currentTarget.style.backgroundColor = event.type === 'collision' ? '#1f1f23' : event.type === 'engineOn' ? '#13261a' : event.type === 'engineOff' ? '#1f1f1f' : event.type === 'suddenAccel' ? '#1f1f23' : '#1f2323'
+                e.currentTarget.style.borderColor = event.type === 'collision' ? '#374151' : event.type === 'engineOn' ? '#14532d' : event.type === 'engineOff' ? '#4b5563' : event.type === 'suddenAccel' ? '#374151' : '#4b5563'
               }
             }}
             onClick={(e) => {
@@ -1279,12 +1405,12 @@ function EventTimeline({
                 <div style={{ 
                   width: 12, 
                   height: 12, 
-                  backgroundColor: event.type === 'collision' ? '#ef4444' : event.type === 'engineOff' ? '#f59e0b' : event.type === 'suddenAccel' ? '#8b5cf6' : '#06b6d4', 
+                  backgroundColor: event.type === 'collision' ? '#ef4444' : event.type === 'engineOn' ? '#22c55e' : event.type === 'engineOff' ? '#f59e0b' : event.type === 'suddenAccel' ? '#8b5cf6' : '#06b6d4', 
                   borderRadius: '50%',
-                  boxShadow: `0 0 8px ${event.type === 'collision' ? 'rgba(239, 68, 68, 0.5)' : event.type === 'engineOff' ? 'rgba(245, 158, 11, 0.5)' : event.type === 'suddenAccel' ? 'rgba(139, 92, 246, 0.5)' : 'rgba(6, 182, 212, 0.5)'}`
+                  boxShadow: `0 0 8px ${event.type === 'collision' ? 'rgba(239, 68, 68, 0.5)' : event.type === 'engineOn' ? 'rgba(34, 197, 94, 0.5)' : event.type === 'engineOff' ? 'rgba(245, 158, 11, 0.5)' : event.type === 'suddenAccel' ? 'rgba(139, 92, 246, 0.5)' : 'rgba(6, 182, 212, 0.5)'}`
                 }}></div>
                 <strong style={{ color: '#f9fafb' }}>
-                  {event.type === 'collision' ? '🚗 충돌 이벤트' : event.type === 'engineOff' ? '🔧 엔진 오프 이벤트' : event.type === 'suddenAccel' ? '⚡ 급가속 이벤트' : '⚠️ 경고등 이벤트'}
+                  {event.type === 'collision' ? '🚗 충돌 이벤트' : event.type === 'engineOn' ? '🟢 엔진 온 이벤트' : event.type === 'engineOff' ? '🔧 엔진 오프 이벤트' : event.type === 'suddenAccel' ? '⚡ 급가속 이벤트' : '⚠️ 경고등 이벤트'}
                 </strong>
                 <span style={{ 
                   color: '#9ca3af', 
@@ -1305,11 +1431,12 @@ function EventTimeline({
                 <div style={{ color: '#d1d5db' }}>
                   💥 손상도: <span style={{ color: '#ef4444', fontWeight: 600 }}>{(event as CollisionEvent).damage}/5</span>
                 </div>
-              ) : event.type === 'engineOff' ? (
+              ) : event.type === 'engineOn' || event.type === 'engineOff' ? (
                 <div style={{ color: '#d1d5db' }}>
-                  ⚙️ 기어: <span style={{ color: '#f59e0b' }}>{(event as EngineOffEvent).gear_status}</span> | 
-                  📐 자이로: <span style={{ color: '#f59e0b' }}>{(event as EngineOffEvent).gyro}°</span> | 
-                  📍 방향: <span style={{ color: '#f59e0b' }}>{(event as EngineOffEvent).side}</span>
+                  ⚙️ 기어: <span style={{ color: event.type === 'engineOn' ? '#22c55e' : '#f59e0b' }}>{(event as EngineOffEvent).gear_status}</span> | 
+                  📐 자이로: <span style={{ color: event.type === 'engineOn' ? '#22c55e' : '#f59e0b' }}>{(event as EngineOffEvent).gyro}°</span> | 
+                  📍 방향: <span style={{ color: event.type === 'engineOn' ? '#22c55e' : '#f59e0b' }}>{(event as EngineOffEvent).side}</span> | 
+                  🔌 시동: <span style={{ color: event.type === 'engineOn' ? '#22c55e' : '#f59e0b', fontWeight: 600 }}>{(event as EngineOffEvent).ignition ? 'ON' : 'OFF'}</span>
                 </div>
               ) : event.type === 'suddenAccel' ? (
                 <div style={{ color: '#d1d5db' }}>
@@ -1368,7 +1495,11 @@ function TelemetryChart({
     }).map(e => ({ ...e, type: 'collision' as const })),
     ...eventData.engine_off_events.filter(e => {
       const eventTime = new Date(e.timestamp)
-      return eventTime >= telemetryStart && eventTime <= telemetryEnd
+      return eventTime >= telemetryStart && eventTime <= telemetryEnd && e.ignition === true
+    }).map(e => ({ ...e, type: 'engineOn' as const })),
+    ...eventData.engine_off_events.filter(e => {
+      const eventTime = new Date(e.timestamp)
+      return eventTime >= telemetryStart && eventTime <= telemetryEnd && e.ignition === false
     }).map(e => ({ ...e, type: 'engineOff' as const })),
     ...eventData.sudden_acceleration_events.filter(e => {
       const eventTime = new Date(e.timestamp)
@@ -1535,6 +1666,7 @@ function TelemetryChart({
                 // 이벤트 타입별 색상과 이모지
                 const eventStyle = 
                   event.type === 'collision' ? { color: '#ef4444', emoji: '🚨' } :
+                  event.type === 'engineOn' ? { color: '#22c55e', emoji: '🟢' } :
                   event.type === 'engineOff' ? { color: '#f59e0b', emoji: '🔧' } :
                   event.type === 'suddenAccel' ? { color: '#8b5cf6', emoji: '⚡' } :
                   { color: '#06b6d4', emoji: '⚠️' }
@@ -1608,6 +1740,7 @@ function TelemetryChart({
                 // 이벤트 타입별 색상과 이모지
                 const eventStyle = 
                   event.type === 'collision' ? { color: '#ef4444', emoji: '🚨' } :
+                  event.type === 'engineOn' ? { color: '#22c55e', emoji: '🟢' } :
                   event.type === 'engineOff' ? { color: '#f59e0b', emoji: '🔧' } :
                   event.type === 'suddenAccel' ? { color: '#8b5cf6', emoji: '⚡' } :
                   { color: '#06b6d4', emoji: '⚠️' }
@@ -1682,6 +1815,7 @@ function TelemetryChart({
                 // 이벤트 타입별 색상과 이모지
                 const eventStyle = 
                   event.type === 'collision' ? { color: '#ef4444', emoji: '🚨' } :
+                  event.type === 'engineOn' ? { color: '#22c55e', emoji: '🟢' } :
                   event.type === 'engineOff' ? { color: '#f59e0b', emoji: '🔧' } :
                   event.type === 'suddenAccel' ? { color: '#8b5cf6', emoji: '⚡' } :
                   { color: '#06b6d4', emoji: '⚠️' }
@@ -1733,6 +1867,8 @@ function TelemetryChart({
               const eventStyle = 
                 event.type === 'collision' 
                   ? { bg: 'rgba(239, 68, 68, 0.1)', border: '#ef4444', color: '#ef4444', label: '🚨 충돌' } :
+                event.type === 'engineOn'
+                  ? { bg: 'rgba(34, 197, 94, 0.1)', border: '#22c55e', color: '#22c55e', label: '🟢 엔진 온' } :
                 event.type === 'engineOff'
                   ? { bg: 'rgba(245, 158, 11, 0.1)', border: '#f59e0b', color: '#f59e0b', label: '🔧 엔진 오프' } :
                 event.type === 'suddenAccel'
