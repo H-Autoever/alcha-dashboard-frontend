@@ -7,4 +7,4 @@ resources:
   - ingress.yaml
 images:
   - name: 504554670497.dkr.ecr.ap-northeast-2.amazonaws.com/alcha/dashboard-frontend
-    newTag: 3f72a73a33cd08334d43b306e40bf35d5a4573fe
+    newTag: 8c9cccef96a47f840359727ae5725aa56df87ab5
