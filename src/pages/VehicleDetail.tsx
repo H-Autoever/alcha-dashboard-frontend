@@ -81,9 +81,9 @@ export default function VehicleDetailPage() {
     setLoading(true)
     
     // 차량 상세 정보, 이벤트 데이터, 텔레메트리 데이터를 병렬로 로드
-    // 텔레메트리: 실제 데이터가 있는 시간 범위 (2025-09-23 01:54:26 ~ 02:54:26 UTC)
-    const telemetryStart = '2025-09-23T01:54:26Z'
-    const telemetryEnd = '2025-09-23T02:54:26Z'
+    // 텔레메트리: 실제 데이터가 있는 시간 범위 (2025-10-28 08:49:14 ~ 2025-10-29 01:19:01 UTC)
+    const telemetryStart = '2025-10-28T08:49:14Z'
+    const telemetryEnd = '2025-10-29T01:19:01Z'
     
     Promise.all([
       api<VehicleDetail>(`/api/vehicles/${encodeURIComponent(vehicleId)}`),
